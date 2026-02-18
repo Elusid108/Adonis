@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adonis Engine | PixelForge</title>
+    
+    <!-- Babel for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- 
+      We use type="text/babel" with data-type="module" to allow ES6 imports 
+      directly in the browser without a build step.
+    -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import { 
+            Send, RefreshCw, Settings, AlertCircle, Copy, Check, Sparkles, User, 
+            Image as ImageIcon, Eye, EyeOff, MessageSquare, Download, History, X, 
+            Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2 
+        } from 'https://esm.sh/lucide-react@0.303.0';
+
+        const AdonisEngineApp = () => {
+            // --- State Management ---
+            const [apiKey, setApiKey] = useState('');
+            const [showSettings, setShowSettings] = useState(false);
+            const [showHistory, setShowHistory] = useState(false);
+            const [isFullScreen, setIsFullScreen] = useState(false);
+
+            // Dynamic Model State
+            const [availableTextModels, setAvailableTextModels] = useState([]);
+            const [availableImageModels, setAvailableImageModels] = useState([]);
+            const [selectedTextModel, setSelectedTextModel] = useState('gemini-2.0-flash-lite-preview-02-05');
+            const [selectedImageModel, setSelectedImageModel] = useState('gemini-2.5-flash-image-preview');
+            const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+            const [currentPrompt, setCurrentPrompt] = useState("");
+            const [generatedImage, setGeneratedImage] = useState(null);
+            const [generationHistory, setGenerationHistory] = useState([]);
+
+            const [chatHistory, setChatHistory] = useState([
+                { role: 'system', text: 'Welcome to the Adonis Engine. Please enter your API Key in settings to load available models.', type: 'text' }
+            ]);
+            const [userInput, setUserInput] = useState("");
+            const [isTextLoading, setIsTextLoading] = useState(false);
+            const [isImageLoading, setIsImageLoading] = useState(false);
+            const [isSanitizing, setIsSanitizing] = useState(false);
+            const [error, setError] = useState(null);
+            
+            const [copyFeedback, setCopyFeedback] = useState({});
+            const chatEndRef = useRef(null);
+
+            // --- Load API Key from Cache on Mount ---
+            useEffect(() => {
+                const cachedKey = localStorage.getItem('adonis_gemini_key');
+                if (cachedKey) {
+                    setApiKey(cachedKey);
+                } else {
+                    setShowSettings(true);
+                }
+            }, []);
+
+            // --- Fetch Models when Key Changes ---
+            useEffect(() => {
+                if (apiKey && apiKey.length > 10) {
+                    fetchModels(apiKey);
+                }
+            }, [apiKey]);
+
+            const updateApiKey = (val) => {
+                setApiKey(val);
+                localStorage.setItem('adonis_gemini_key', val);
+            };
+
+            const fetchModels = async (key) => {
+                setIsLoadingModels(true);
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+                    if (!response.ok) throw new Error('Failed to fetch models');
+                    
+                    const data = await response.json();
+                    if (!data.models) return;
+
+                    const rawModels = data.models;
+                    const textOpts = [];
+                    const imageOpts = [];
+
+                    rawModels.forEach(model => {
+                        const name = model.name.toLowerCase();
+                        const methods = model.supportedGenerationMethods || [];
+
+                        // Filter utility/blocked models
+                        if (name.includes('embedding') || name.includes('aqa') || name.includes('answer') || name.includes('veo')) {
+                            return;
+                        }
+
+                        const modelId = model.name.replace('models/', '');
+                        const modelObj = { id: modelId, displayName: model.displayName || modelId };
+
+                        // Image Models
+                        if (name.includes('imagen') || name.includes('image')) {
+                            imageOpts.push(modelObj);
+                        } 
+                        // Text Models
+                        if (methods.includes('generateContent') && !name.includes('vision') && !name.includes('image')) {
+                            textOpts.push(modelObj);
+                        }
+                    });
+
+                    // Sort: Gemini first, then version descending
+                    const sortFn = (a, b) => {
+                        const aIsGemini = a.id.includes('gemini');
+                        const bIsGemini = b.id.includes('gemini');
+                        if (aIsGemini && !bIsGemini) return -1;
+                        if (!aIsGemini && bIsGemini) return 1;
+                        return b.id.localeCompare(a.id);
+                    };
+
+                    textOpts.sort(sortFn);
+                    imageOpts.sort(sortFn);
+
+                    setAvailableTextModels(textOpts);
+                    setAvailableImageModels(imageOpts);
+
+                    // Set defaults if current selection isn't valid
+                    if (textOpts.length > 0 && !textOpts.find(m => m.id === selectedTextModel)) {
+                        const flash = textOpts.find(m => m.id.includes('flash'));
+                        setSelectedTextModel(flash ? flash.id : textOpts[0].id);
+                    }
+                    if (imageOpts.length > 0 && !imageOpts.find(m => m.id === selectedImageModel)) {
+                        const nano = imageOpts.find(m => m.id.includes('flash-image'));
+                        setSelectedImageModel(nano ? nano.id : imageOpts[0].id);
+                    }
+
+                } catch (e) {
+                    console.error("Error fetching models:", e);
+                } finally {
+                    setIsLoadingModels(false);
+                }
+            };
+
+            // --- Constants & System Prompts ---
+            const DEFAULT_SYSTEM_PROMPT = `
+                You are an expert 3D character artist and prompt engineer specializing in physically desirable male character design.
+                
+                YOUR GOAL: Write MASSIVELY DETAILED, anatomical, and structured descriptions of HUMAN MEN.
+                
+                CONSTRAINT: STRICTLY HUMAN CHARACTERS ONLY.
+                - NO fantasy races (elves, orcs, aliens).
+                - NO magic, glowing eyes, or unrealistic skin colors.
+                - CRITICAL: VARY THE AESTHETIC. Do not default to "rugged bodybuilder".
+                - Create "Pretty" men, "Elegant" men, "Lean" men, "Soft" men, as well as "Strong" men.
+                
+                CRITICAL OUTPUT FORMAT:
+                You must output the prompt in the following STRICT SECTIONS:
+
+                [Style & Medium]
+                (Describe render style: "High-fidelity 3D animated render, stylized realism, premium adult animation aesthetic, soft studio lighting")
+
+                [Subject Physique & Features]
+                (Describe body type, muscle definition, skin texture, facial structure. E.g., "Lean swimmer build", "Soft boyish features", "Rugged weathered skin")
+
+                [Hair & Grooming]
+                (Describe hairstyle, beard/stubble, body hair grooming. Be specific about texture and color.)
+
+                [Adornments & Details]
+                (Describe piercings, tattoos, scars, glasses, sweat, dirt, or specific realistic details.)
+
+                [Torso Anatomy & Hair Texture]
+                (Describe chest, abs, muscle groups, body hair patterns. E.g., "Thick mat of chest hair", "Smooth hairless definition", "Vascularity")
+
+                [Arms & Hands]
+                (Describe arm muscles, veins, hand size/texture, tattoos.)
+
+                [Legs & Lower Body]
+                (Describe thigh/calf muscles, leg hair density, footwear.)
+
+                [Attire & Pose]
+                (Describe clothing fit, fabric, specific cut, and the character's pose/background. Clothing should be realistic.)
+
+                SAFETY GUIDELINES (STRICT):
+                - Focus on "desirability" but KEEP IT SAFE FOR WORK.
+                - Use clinical/artistic terms for anatomy (e.g., "v-taper", "defined quads", "fitted briefs", "athletic profile").
+                - DO NOT use explicit sexual language or describe genitalia. Use terms like "athletic fit" or "contoured" for clothing.
+                
+                When the user asks for a modification:
+                1. READ the Current Prompt.
+                2. INTEGRATE the change seamlessly into the relevant section.
+                3. OUTPUT ONLY the raw prompt text in the structured format above.
+            `;
+
+            // --- API Helpers ---
+
+            const callGeminiText = async (messages, currentPromptSnapshot, mode = 'generate') => {
+                if (!apiKey) throw new Error("API Key Required. Check Settings.");
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedTextModel}:generateContent?key=${apiKey}`;
+
+                let finalPayload = {};
+
+                if (mode === 'sanitize') {
+                    finalPayload = {
+                        contents: [{ parts: [{ text: `
+                        The following image prompt triggered a safety filter. Rewrite it to be "Safe for Work" while keeping the extreme detail. 
+                        - Remove any explicit anatomical terms (e.g. specific underwear details, "massive bulge", "veiny").
+                        - Replace them with artistic terms like "athletic build", "defined musculature", "classic swimwear".
+                        - Keep the structured format (sections).
+                        - Output ONLY the sanitized prompt.
+
+                        PROMPT TO FIX:
+                        "${currentPromptSnapshot}"
+                        ` }] }]
+                    };
+                } else {
+                    const userMessage = messages[messages.length - 1].text;
+                    let promptContext = "";
+                    
+                    if (currentPromptSnapshot) {
+                        promptContext = `CURRENT PROMPT:\n"${currentPromptSnapshot}"\n\nUSER REQUEST: Change the character based on this instruction: "${userMessage}". \n\nRemember to output ONLY the updated full prompt in the structured format.`;
+                    } else {
+                        promptContext = `USER REQUEST: Create a new male character description based on: "${userMessage}". Ensure you use the full structured format with all sections. Make it vivid and distinct.`;
+                    }
+
+                    finalPayload = {
+                        contents: [{ parts: [{ text: promptContext }] }],
+                        systemInstruction: { parts: [{ text: DEFAULT_SYSTEM_PROMPT }] }
+                    };
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(finalPayload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) {
+                            throw new Error("Unauthorized: Invalid API Key. Please check your settings.");
+                        }
+                        throw new Error(`Text Engine Error (${selectedTextModel}): ${response.status}`);
+                    }
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Error generating text.";
+                } catch (err) {
+                    console.error(err);
+                    throw err;
+                }
+            };
+
+            const callImageAPI = async (promptText) => {
+                if (!apiKey) throw new Error("API Key Required. Check Settings.");
+                
+                // Determine logic based on model name
+                let endpoint = 'generateContent';
+                let payload = {
+                    contents: [{ parts: [{ text: promptText }] }],
+                    generationConfig: { responseModalities: ["IMAGE"] }
+                };
+
+                // Legacy logic for older Imagen models if they don't support generateContent
+                if (selectedImageModel.includes('imagen') && !selectedImageModel.includes('3')) {
+                    endpoint = 'predict';
+                    payload = {
+                        instances: [{ prompt: promptText }],
+                        parameters: { sampleCount: 1, aspectRatio: "1:1" }
+                    };
+                }
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedImageModel}:${endpoint}?key=${apiKey}`;
+                
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 401 || response.status === 403) throw new Error("Unauthorized: Invalid API Key.");
+                        const errData = await response.json().catch(() => ({}));
+                        if (response.status === 400 || errData.error?.message?.includes("safety")) throw new Error("SAFETY_BLOCK");
+                        throw new Error(`Image Error (${selectedImageModel}): ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    
+                    // Parse response logic
+                    let base64Image = null;
+                    if (data.predictions && data.predictions[0]) {
+                        base64Image = data.predictions[0].bytesBase64Encoded;
+                    } else if (data.candidates && data.candidates[0]) {
+                        base64Image = data.candidates[0].content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    }
+                    
+                    if (!base64Image) throw new Error("SAFETY_BLOCK");
+                    return `data:image/png;base64,${base64Image}`;
+                } catch (err) {
+                    throw err;
+                }
+            };
+
+            // --- Logic & Handlers ---
+
+            const scrollToBottom = () => {
+                chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [chatHistory]);
+
+            const copyText = (text, id) => {
+                if (!text) return;
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                    navigator.clipboard.writeText(text).catch(e => console.error(e));
+                }
+                document.body.removeChild(textArea);
+                setCopyFeedback(prev => ({ ...prev, [id]: true }));
+                setTimeout(() => {
+                    setCopyFeedback(prev => ({ ...prev, [id]: false }));
+                }, 2000);
+            };
+
+            const addToHistory = (img, promptText, currentChat) => {
+                const newItem = {
+                    id: Date.now(),
+                    image: img,
+                    prompt: promptText,
+                    chat: JSON.parse(JSON.stringify(currentChat)),
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setGenerationHistory(prev => [newItem, ...prev]);
+            };
+
+            const restoreHistoryItem = (item) => {
+                setGeneratedImage(item.image);
+                setCurrentPrompt(item.prompt);
+                setChatHistory(item.chat);
+                setShowHistory(false);
+                setError(null);
+            };
+
+            const downloadImage = () => {
+                if (!generatedImage) return;
+                const link = document.createElement('a');
+                link.href = generatedImage;
+                link.download = `adonis-engine-${Date.now()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            const executeGeneration = async (promptText, historySnapshot) => {
+                setIsImageLoading(true);
+                
+                const promptMsg = { role: 'model', text: promptText, type: 'prompt' };
+                const historyWithPrompt = [...historySnapshot, promptMsg];
+                setChatHistory(historyWithPrompt);
+                setCurrentPrompt(promptText);
+
+                try {
+                    const imageUrl = await callImageAPI(promptText);
+                    setGeneratedImage(imageUrl);
+                    
+                    const successMsg = { role: 'system', text: `Image generated successfully using ${selectedImageModel}.`, type: 'text' };
+                    const finalChat = [...historyWithPrompt, successMsg];
+                    setChatHistory(finalChat);
+                    addToHistory(imageUrl, promptText, finalChat);
+                    
+                } catch (err) {
+                    if (err.message === "SAFETY_BLOCK") {
+                        setIsSanitizing(true);
+                        try {
+                            const sanitizedPrompt = await callGeminiText(null, promptText, 'sanitize');
+                            const safetyMsg = { 
+                                role: 'system', 
+                                text: 'Safety filter triggered.', 
+                                type: 'safety-recovery', 
+                                proposedPrompt: sanitizedPrompt 
+                            };
+                            setChatHistory(prev => [...prev, safetyMsg]);
+                        } catch (sanitizeErr) {
+                            setError("Safety block detected, and auto-fix failed. Please try a simpler request.");
+                            setChatHistory(prev => [...prev, { role: 'system', text: 'Safety block detected. Could not auto-fix.', type: 'text' }]);
+                        } finally {
+                            setIsSanitizing(false);
+                        }
+                    } else {
+                        setError(err.message);
+                        setChatHistory(prev => [...prev, { role: 'system', text: `Error: ${err.message}`, type: 'text' }]);
+                    }
+                } finally {
+                    setIsImageLoading(false);
+                }
+            };
+
+            const handleSendMessage = async (e) => {
+                e.preventDefault();
+                if (!userInput.trim()) return;
+
+                const newMsg = { role: 'user', text: userInput, type: 'text' };
+                const updatedChat = [...chatHistory, newMsg];
+                setChatHistory(updatedChat);
+                setUserInput("");
+                setIsTextLoading(true);
+                setError(null);
+
+                try {
+                    const newPromptText = await callGeminiText(updatedChat, currentPrompt, 'generate');
+                    setIsTextLoading(false);
+                    await executeGeneration(newPromptText, updatedChat);
+                } catch (err) {
+                    setError(err.message);
+                    setIsTextLoading(false);
+                }
+            };
+
+            const handleRetrySafe = (safePrompt) => {
+                const updatedChat = [...chatHistory, { role: 'user', text: "Accepted safety modification.", type: 'text' }];
+                executeGeneration(safePrompt, updatedChat);
+            };
+
+            const generateNewBase = async () => {
+                setError(null);
+                
+                if (!apiKey) {
+                    setError("API Key Required. Please enter it in Settings (⚙️).");
+                    setShowSettings(true);
+                    return;
+                }
+
+                setChatHistory([{ role: 'system', text: 'Rolling a new, unique male character concept...', type: 'text' }]);
+                setIsTextLoading(true);
+                setGeneratedImage(null);
+                setCurrentPrompt("");
+
+                const vibes = ["Stoic & Mysterious", "Cheerful & Golden Retriever", "Intense & Brooding", "Sophisticated & Elegant", "Laid-back & Easygoing", "Sharp & Intellectual", "Rugged & Weathered", "Ethereal & Artistic", "Boyish & Charming", "Rebellious & Edgy"];
+                const roles = ["Florist", "Architect", "Boxer", "Ceramicist", "Chef", "Violinist", "Bike Messenger", "Sommelier", "Rancher", "Software Developer", "Marine Biologist", "Fashion Designer", "Pilot", "Sculptor", "Yoga Instructor", "Barber"];
+                const settings = ["Sunlit industrial loft", "Rain-slicked neon street", "Cozy book-filled library", "Minimalist modern office", "Dusty sun-drenched workshop", "Serene misty garden", "Crowded subway station", "Quiet cabin porch"];
+                const bodyTypes = ["Lean & Wiry (Runner)", "Massive & Muscular (Powerlifter)", "Defined & Aesthetic (Swimmer)", "Soft & Healthy (Dad bod)", "Slender & Elegant (Dancer)"];
+                const groomingStyles = ["Clean shaven & smooth", "Heavy stubble & chest hair", "Full groomed beard & hairy", "Long flowing hair & smooth", "Buzz cut & light stubble"];
+
+                const rVibe = vibes[Math.floor(Math.random() * vibes.length)];
+                const rRole = roles[Math.floor(Math.random() * roles.length)];
+                const rSetting = settings[Math.floor(Math.random() * settings.length)];
+                const rBody = bodyTypes[Math.floor(Math.random() * bodyTypes.length)];
+                const rGrooming = groomingStyles[Math.floor(Math.random() * groomingStyles.length)];
+
+                const seedInstruction = `
+                    Create a unique human male character description.
+                    - VIBE: ${rVibe}
+                    - ROLE: ${rRole}
+                    - SETTING: ${rSetting}
+                    - BODY TYPE: ${rBody}
+                    - GROOMING: ${rGrooming}
+                    
+                    Combine these elements into a cohesive, physically desirable character. 
+                    Ensure he feels like a real person, not a caricature. 
+                    Use the full structured output format.
+                `;
+
+                try {
+                    const newPromptText = await callGeminiText([{ role: 'user', text: seedInstruction }], null, 'generate');
+                    setIsTextLoading(false);
+                    await executeGeneration(newPromptText, [{ role: 'system', text: `Concept: ${rVibe} ${rRole}`, type: 'text' }]);
+                } catch (err) {
+                    setError(err.message);
+                    setIsTextLoading(false);
+                }
+            };
+
+            // --- Render ---
+            return (
+                <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden relative">
+                    
+                    {/* Header */}
+                    <div className="flex-none p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/90 z-20">
+                        <div className="flex items-center gap-3">
+                            <Sparkles className="w-5 h-5 text-emerald-400" />
+                            <h1 className="font-bold text-lg tracking-wide hidden sm:block">Adonis Engine</h1>
+                            <button onClick={() => setShowHistory(!showHistory)} className={`p-2 rounded-full transition-colors flex items-center gap-2 ${showHistory ? 'bg-emerald-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
+                                <History className="w-5 h-5" />
+                                <span className="text-xs font-semibold hidden sm:block">History</span>
+                            </button>
+                        </div>
+                        <button onClick={() => setShowSettings(!showSettings)} className={`p-2 rounded-full text-slate-400 ${showSettings ? 'bg-slate-800 text-white' : 'hover:bg-slate-700'}`}>
+                            <Settings className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Settings Panel */}
+                    {showSettings && (
+                        <div className="flex-none p-6 bg-slate-800 border-b border-slate-700 z-30 animate-in slide-in-from-top-2 space-y-6">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Google Gemini API Key</label>
+                                <input 
+                                    type="password" 
+                                    value={apiKey}
+                                    onChange={(e) => updateApiKey(e.target.value)}
+                                    placeholder="Paste your API key here (Auto-Saved)..."
+                                    className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                                />
+                                <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                                    {isLoadingModels && <Loader2 className="w-3 h-3 animate-spin"/>}
+                                    {availableTextModels.length > 0 ? "Key active. Models loaded." : "Enter key to load models."}
+                                </p>
+                            </div>
+
+                            {/* Dynamic Model Dropdowns */}
+                            {availableTextModels.length > 0 && (
+                                <div className="space-y-4 animate-in slide-in-from-top-2">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2">
+                                            <Type className="w-3 h-3" /> Text Generation Model
+                                        </label>
+                                        <select 
+                                            value={selectedTextModel}
+                                            onChange={(e) => setSelectedTextModel(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                                        >
+                                            {availableTextModels.map(m => (
+                                                <option key={m.id} value={m.id}>{m.displayName}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2">
+                                            <ImageIcon className="w-3 h-3" /> Image Generation Model
+                                        </label>
+                                        <select 
+                                            value={selectedImageModel}
+                                            onChange={(e) => setSelectedImageModel(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                                        >
+                                            {availableImageModels.map(m => (
+                                                <option key={m.id} value={m.id}>{m.displayName}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* History Sidebar */}
+                    {showHistory && (
+                        <div className="absolute inset-y-0 left-0 w-full sm:w-80 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700 z-50 flex flex-col shadow-2xl animate-in slide-in-from-left-4">
+                            <div className="p-4 border-b border-slate-700 flex justify-between items-center">
+                                <h2 className="font-bold text-slate-200">History</h2>
+                                <button onClick={() => setShowHistory(false)} className="p-1 hover:bg-slate-700 rounded-full">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {generationHistory.length === 0 ? (
+                                    <p className="text-slate-500 text-sm text-center italic mt-10">No history yet.</p>
+                                ) : (
+                                    generationHistory.map((item) => (
+                                        <div key={item.id} onClick={() => restoreHistoryItem(item)} className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-emerald-500 cursor-pointer transition-all group">
+                                            <div className="aspect-square w-full relative bg-slate-950">
+                                                <img src={item.image} alt="Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+                                                    <p className="text-xs text-slate-300 font-mono">{item.timestamp}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TOP: Image Preview */}
+                    <div className="flex-1 flex flex-col min-h-0 bg-slate-950 relative">
+                        <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+                            {generatedImage ? (
+                                <div className="relative group h-full w-full flex items-center justify-center">
+                                    <div className="relative max-h-full max-w-full cursor-zoom-in shadow-2xl rounded-xl overflow-hidden border border-slate-800 bg-slate-900 transition-transform active:scale-[0.99]" onClick={() => setIsFullScreen(true)}>
+                                        <img src={generatedImage} alt="Generated" className="max-h-full max-w-full object-contain" />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
+                                            <div className="bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1">
+                                                <Maximize2 className="w-3 h-3" /> <span>Full Screen</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-4 left-4 z-10">
+                                        <button onClick={downloadImage} className="bg-black/50 hover:bg-black/70 backdrop-blur text-white p-2 rounded-lg border border-white/10 shadow-lg" title="Download Image">
+                                            <Download className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center p-8 border-2 border-dashed border-slate-800 rounded-3xl opacity-50 select-none">
+                                    <User className="w-16 h-16 mx-auto mb-4 text-slate-700" />
+                                    <p className="text-slate-500 font-medium">Visualization Workspace</p>
+                                </div>
+                            )}
+                            {error && (
+                                <div className="absolute top-4 left-4 right-4 mx-auto max-w-md bg-red-900/90 text-red-100 px-4 py-3 rounded-lg flex items-start gap-3 backdrop-blur shadow-xl text-sm z-20 border border-red-700 animate-in slide-in-from-top-4">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                    <span>{error}</span>
+                                    <button onClick={() => setError(null)} className="ml-auto hover:bg-red-800 rounded p-1"><X className="w-4 h-4"/></button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* MIDDLE: Dice Randomizer */}
+                    <div className="flex-none bg-slate-900 border-t border-slate-800 p-2 flex justify-center z-20 shadow-md">
+                        <button onClick={generateNewBase} disabled={isTextLoading || isImageLoading || isSanitizing} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-2 rounded-full font-bold shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95">
+                            <Dices className="w-5 h-5 animate-bounce" />
+                            <span>Roll New Character</span>
+                        </button>
+                    </div>
+
+                    {/* BOTTOM: Chat */}
+                    <div className="h-[40%] flex flex-col bg-slate-900 border-t border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.5)] z-20">
+                        <div className="px-4 py-2 bg-slate-800/80 border-b border-slate-700 flex items-center gap-2 backdrop-blur-sm">
+                            <MessageSquare className="w-4 h-4 text-slate-400" />
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Detail Editor</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-slate-700 bg-slate-900">
+                            {chatHistory.map((msg, idx) => (
+                                <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-3`}>
+                                    {msg.type === 'prompt' ? (
+                                        <div className="bg-slate-800/80 border border-emerald-500/30 rounded-lg p-3 my-2 shadow-sm w-full max-w-[90%]">
+                                            <div className="flex justify-between items-center mb-2 border-b border-slate-700/50 pb-2">
+                                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                                                    <Sparkles className="w-3 h-3" /> Generated Prompt
+                                                </span>
+                                                <button onClick={() => copyText(msg.text, idx)} className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-[10px] bg-slate-700/50 px-2 py-1 rounded">
+                                                    {copyFeedback[idx] ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copyFeedback[idx] ? "Copied" : "Copy"}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed opacity-90">{msg.text}</p>
+                                        </div>
+                                    ) : msg.type === 'safety-recovery' ? (
+                                        <div className="bg-orange-900/20 border border-orange-500/40 rounded-lg p-4 w-full">
+                                            <div className="flex items-start gap-3 mb-3">
+                                                <ShieldAlert className="w-5 h-5 text-orange-400 mt-0.5" />
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-orange-200">Safety Filter Triggered</h4>
+                                                    <p className="text-xs text-orange-200/80 mt-1">The detail level triggered a safety block. I've created a safe version.</p>
+                                                </div>
+                                            </div>
+                                            <div className="bg-black/30 rounded p-3 mb-3 border border-orange-500/20">
+                                                <p className="text-xs font-mono text-slate-300 italic line-clamp-4">{msg.proposedPrompt}</p>
+                                            </div>
+                                            <button onClick={() => handleRetrySafe(msg.proposedPrompt)} className="w-full bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors flex items-center justify-center gap-2">
+                                                Retry with Safe Version <ArrowRight className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-tr-sm shadow-md' : 'bg-slate-700 text-slate-200 border border-slate-600 rounded-tl-sm'}`}>
+                                            {msg.text}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            {(isTextLoading || isImageLoading || isSanitizing) && (
+                                <div className="flex justify-start my-2">
+                                    <div className="bg-slate-800 border border-slate-700 text-slate-400 p-3 rounded-2xl rounded-tl-sm flex items-center gap-3">
+                                        {isSanitizing ? <ShieldAlert className="w-4 h-4 animate-pulse text-orange-500" /> : isTextLoading ? <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" /> : <ImageIcon className="w-4 h-4 animate-pulse text-purple-500" />}
+                                        <span className="text-xs font-medium">
+                                            {isSanitizing ? "Safety filter hit. Rewriting prompt..." : isTextLoading ? "Refining prompt..." : `Rendering with ${selectedImageModel}...`}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={chatEndRef} />
+                        </div>
+                        <div className="p-4 bg-slate-800 border-t border-slate-700">
+                            <form onSubmit={handleSendMessage} className="flex gap-2">
+                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Describe changes (e.g., 'Make his beard silver')" className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500 transition-all shadow-inner text-sm" disabled={isTextLoading || isImageLoading || isSanitizing} />
+                                <button type="submit" disabled={isTextLoading || isImageLoading || isSanitizing || !userInput.trim()} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 rounded-lg flex items-center justify-center shadow-lg"><Send className="w-5 h-5" /></button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* FULL SCREEN MODAL */}
+                    {isFullScreen && generatedImage && (
+                        <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col animate-in fade-in duration-200">
+                            <div className="absolute top-4 right-4 flex gap-4 z-50">
+                                <button onClick={downloadImage} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md"><Download className="w-6 h-6" /></button>
+                                <button onClick={() => setIsFullScreen(false)} className="bg-white/10 hover:bg-red-500/80 text-white p-3 rounded-full backdrop-blur-md"><X className="w-6 h-6" /></button>
+                            </div>
+                            <div className="flex-1 p-4 flex items-center justify-center overflow-hidden" onClick={() => setIsFullScreen(false)}>
+                                <img src={generatedImage} alt="Full Screen" className="max-w-full max-h-full object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<AdonisEngineApp />);
+    </script>
+</body>
+</html>

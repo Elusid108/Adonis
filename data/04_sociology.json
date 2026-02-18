@@ -1,0 +1,156 @@
+{
+  "lore_origins": {
+    "geographic_origin": [
+      "Dense Urban Metropolis (NYC, Tokyo, London)",
+      "Suburban Sprawl (Cookie-cutter housing)",
+      "Rural / Farmland",
+      "Coastal / Beach town",
+      "Mountain / High altitude",
+      "Desert / Arid climate",
+      "Rust Belt / Decaying industry",
+      "Military Brat (Moved every 2 years)",
+      "Digital Nomad / Van Life",
+      "Immigrant (First generation)",
+      "Immigrant (Second generation)"
+    ],
+    "socioeconomic_trajectory": [
+      "Old Money (Wealthy for generations)",
+      "New Money (Flashy, recently rich)",
+      "Upper Middle Class (Comfortable)",
+      "Middle Class (Stable)",
+      "Working Poor (Check to check)",
+      "Poverty Line (Struggling)",
+      "Destitute (History of homelessness)",
+      "Rags to Riches",
+      "Riches to Rags (Lost family fortune)"
+    ],
+    "education": [
+      "High School Dropout",
+      "GED Holder",
+      "Trade School / Apprentice",
+      "Some College / No Degree",
+      "Bachelor's Degree",
+      "Master's Degree",
+      "PhD / Doctorate",
+      "Self-Taught / Autodidact",
+      "Homeschooled (Religious)",
+      "Homeschooled (Secular/Hippie)"
+    ]
+  },
+  "family_architecture": {
+    "structure": [
+      "Nuclear Family (Married parents)",
+      "Single Mother (Matrifocal)",
+      "Single Father (Patrifocal)",
+      "Divorced (Shared custody)",
+      "Raised by Grandparents",
+      "Raised by Older Sibling",
+      "Foster Care System (Multiple homes)",
+      "Adopted (At birth)",
+      "Adopted (Later in life)",
+      "Orphanage / Group Home",
+      "Commune / Cult compound",
+      "Same-sex parents"
+    ],
+    "sibling_dynamic": [
+      "Only Child",
+      "Eldest Child (Responsible/Bossy)",
+      "Middle Child (Peacemaker/Forgotten)",
+      "Youngest Child (Spoiled/Rebellious)",
+      "Twin (Identical)",
+      "Twin (Fraternal)",
+      "Irish Twins (Less than 12 months apart)",
+      "Large gap (10+ years from nearest sibling)",
+      "Step-siblings (Blended family)",
+      "Estranged from siblings"
+    ],
+    "family_atmosphere": [
+      "Warm and supportive",
+      "Strict and authoritarian",
+      "Chaotic and unpredictable",
+      "Neglectful / Latchkey kid",
+      "Enmeshed (No boundaries)",
+      "Competitive / High pressure",
+      "Secretive (Hiding abuse or crime)",
+      "Transactional (Love earned by success)",
+      "Violent / Abusive"
+    ],
+    "family_role_trauma": [
+      "The Hero (Golden Child)",
+      "The Scapegoat (Black Sheep)",
+      "The Mascot (Class Clown)",
+      "The Lost Child (Invisible)",
+      "The Caretaker (Parentified Child)",
+      "The Enabler"
+    ]
+  },
+  "lifestyle": {
+    "living_space": [
+      "Minimalist Apartment",
+      "Cluttered / Hoarder tendency",
+      "Dorm-style / Roommates",
+      "Luxury Condo",
+      "Suburban House with yard",
+      "Van / RV",
+      "Squat / Informal",
+      "Parent's Basement"
+    ],
+    "circadian_rhythm": [
+      "Early Bird (5am riser)",
+      "9 to 5 Regular",
+      "Night Owl (Up until 3am)",
+      "Insomniac",
+      "Shift Worker (Rotates)",
+      "Biphasic (Two sleeps)"
+    ],
+    "dietary_habits": [
+      "Omnivore / Standard",
+      "Vegan / Plant-based",
+      "Vegetarian",
+      "Keto / Carnivore",
+      "Fast Food Junkie",
+      "Health Nut / Organic only",
+      "Picky Eater (Childish palate)",
+      "Foodie / Adventurous eater",
+      "Functional eater (Fuel only)"
+    ],
+    "substances": [
+      "Teetotaler / Sober",
+      "Social Drinker",
+      "Caffeine Addict",
+      "Nicotine User (Vape/Cigs)",
+      "Stoner / Cannabis daily",
+      "Functional Alcoholic",
+      "Psychonaut (Hallucinogens)",
+      "Recovery (Past addiction)"
+    ]
+  },
+  "skills_hobbies": {
+    "primary_skillset": [
+      "Tech / IT / Coding",
+      "Mechanical / Repair / Engineering",
+      "Medical / First Aid",
+      "Artistic / Creative (Visual)",
+      "Musical / Audio",
+      "Athletic / Physical",
+      "Social / Charisma / Sales",
+      "Academic / Research",
+      "Domestic / Cooking / Gardening",
+      "Combat / Tactical",
+      "Criminal / Stealth / Lockpicking"
+    ],
+    "escapism": [
+      "Video Games (FPS/Competitive)",
+      "Video Games (RPG/Cozy)",
+      "Reading (Fiction/Fantasy)",
+      "Reading (Non-fiction/History)",
+      "Doomscrolling Social Media",
+      "Hiking / Nature",
+      "Gym / Lifting",
+      "Clubbing / Partying",
+      "Making Art",
+      "Fixing things",
+      "Gossiping"
+    ]
+  }
+}

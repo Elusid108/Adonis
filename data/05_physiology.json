@@ -1,0 +1,150 @@
+{
+  "health_status": {
+    "general_health": [
+      "Peak Physical Condition",
+      "Average / No complaints",
+      "Sedentary / Deconditioned",
+      "Sickly / Weak immune system",
+      "Hypochondriac (Thinks they are sick)"
+    ],
+    "chronic_conditions": [
+      "None",
+      "Asthma / Respiratory issues",
+      "Diabetes (Type 1 or 2)",
+      "Chronic Pain (Back/Knees)",
+      "Migraines",
+      "IBS / Digestive sensitivity",
+      "Arthritis / Joint issues",
+      "Autoimmune Disorder",
+      "Insomnia",
+      "Allergies (Severe - EpiPen)",
+      "Allergies (Seasonal/Mild)"
+    ],
+    "pain_tolerance": [
+      "Extremely Low (Faints at needles)",
+      "Low / Sensitive",
+      "Average",
+      "High / Stoic",
+      "Extremely High (Masochistic tendency)"
+    ]
+  },
+  "kinematics_motor_control": {
+    "handedness": [
+      "Right-handed",
+      "Left-handed",
+      "Ambidextrous",
+      "Cross-dominant (Throw right, write left)"
+    ],
+    "coordination": [
+      "Klutz / Accident prone",
+      "Average",
+      "Graceful / Dancer-like",
+      "Precise / Surgeon-like hands",
+      "Jittery / Shaky hands"
+    ],
+    "reflexes": [
+      "Sluggish",
+      "Average",
+      "Cat-like / Fast",
+      "Jump-scare prone (Startles easily)"
+    ],
+    "fidgets_tics": [
+      "Leg bouncing",
+      "Knuckle cracking",
+      "Nail biting",
+      "Hair twirling",
+      "Pen clicking",
+      "Lip biting",
+      "Pacing",
+      "Avoids eye contact",
+      "Intense staring"
+    ]
+  },
+  "intimacy_sexual_profile": {
+    "orientation_romantic": [
+      "Heteroromantic",
+      "Homoromantic",
+      "Biromantic",
+      "Panromantic",
+      "Aromantic",
+      "Demiromantic"
+    ],
+    "orientation_sexual": [
+      "Heterosexual",
+      "Homosexual",
+      "Bisexual",
+      "Pansexual",
+      "Asexual (Sex-repulsed)",
+      "Asexual (Sex-neutral)",
+      "Demisexual"
+    ],
+    "libido": [
+      "Non-existent",
+      "Low / Reactive",
+      "Average / Moderate",
+      "High / Frequent",
+      "Hypersexual"
+    ],
+    "relationship_style": [
+      "Strictly Monogamous",
+      "Serially Monogamous (Always in a relationship)",
+      "Non-Monogamous / Open",
+      "Polyamorous",
+      "Relationship Anarchist",
+      "Solo / Bachelor(ette) for life"
+    ],
+    "dynamic_preference": [
+      "Dominant (Giver of control)",
+      "Submissive (Receiver of control)",
+      "Switch (Mood dependent)",
+      "Egalitarian / Vanilla (No power play)",
+      "Service-Oriented (Pleaser)",
+      "Brat / Challenger",
+      "Primal / Instinctual",
+      "Sadistic tendencies",
+      "Masochistic tendencies"
+    ],
+    "love_languages": {
+      "primary": [
+        "Words of Affirmation",
+        "Acts of Service",
+        "Receiving Gifts",
+        "Quality Time",
+        "Physical Touch"
+      ],
+      "secondary": [
+        "Words of Affirmation",
+        "Acts of Service",
+        "Receiving Gifts",
+        "Quality Time",
+        "Physical Touch"
+      ]
+    },
+    "turn_ons_triggers": [
+      "Intellectual connection (Sapiosexual)",
+      "Emotional vulnerability",
+      "Physical strength / Size difference",
+      "Competence / Watching someone work",
+      "Praise / Validation",
+      "Degradation / humiliation",
+      "Voyeurism / Being watched",
+      "Exhibitionism / Showing off",
+      "Pain play / Impact",
+      "Restraint / Bondage",
+      "Sensory deprivation",
+      "Roleplay / Acting",
+      "Lingerie / Costumes",
+      "Voices / Auditory stimulation",
+      "Scents / Olfactory stimulation"
+    ],
+    "intimacy_barriers": [
+      "Trust issues (Takes months to open up)",
+      "Fear of engulfment (Pulls away if too close)",
+      "Fear of abandonment (Clings tight)",
+      "Performance anxiety",
+      "Body image issues",
+      "Trauma triggers (Specific touches to avoid)",
+      "Religious guilt"
+    ]
+  }
+}

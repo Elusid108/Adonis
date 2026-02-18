@@ -1,0 +1,100 @@
+{
+  "taxonomy_genetics": [
+    "Baseline Human (No significant genetic drift)",
+    "Baseline Human (High genetic diversity/mixed heritage)",
+    "Genetically Optimized (CRISPR-edited for health)",
+    "Genetically Optimized (Edited for aesthetics)",
+    "Radiation-Touched (Minor cellular instability)",
+    "Chimera (Absorbed twin in utero, dual DNA)",
+    "Cybernetically Integrated (Neural lace present)",
+    "Old Blood (Trace Neanderthal/Denisovan markers high)"
+  ],
+  "biological_sex_chromosomes": [
+    "Male (XY)",
+    "Female (XX)",
+    "Intersex (Klinefelter XXY)",
+    "Intersex (Turner X0)",
+    "Intersex (Mosaicism)",
+    "Intersex (Androgen Insensitivity)",
+    "Male (XY - Low T)",
+    "Female (XX - High Androgen)"
+  ],
+  "gender_identity_presentation": [
+    "Cisgender Man (Hyper-masculine presentation)",
+    "Cisgender Man (Soft masculine presentation)",
+    "Cisgender Man (Androgynous presentation)",
+    "Cisgender Woman (High femme presentation)",
+    "Cisgender Woman (Butch/Utiliterian presentation)",
+    "Cisgender Woman (Naturalist presentation)",
+    "Transgender Man (Stealth)",
+    "Transgender Man (Openly trans)",
+    "Transgender Woman (Stealth)",
+    "Transgender Woman (High glam)",
+    "Non-Binary (Genderfuck/Chaos)",
+    "Non-Binary (Neutral/Null)",
+    "Genderfluid (Shifts daily)",
+    "Agender (Void of gender markers)"
+  ],
+  "chronological_age_range": [
+    "Late Teens (18-19)",
+    "Early Twenties (20-24)",
+    "Late Twenties (25-29)",
+    "Early Thirties (30-34)",
+    "Late Thirties (35-39)",
+    "Middle Aged (40-49)",
+    "Late Middle Age (50-59)",
+    "Senior (60-69)",
+    "Elder (70+)"
+  ],
+  "perceived_age_modifier": [
+    "Matches chronological age exactly",
+    "Looks 5-10 years younger (Baby face/Good genes)",
+    "Looks 5-10 years older (Stress/Weathered)",
+    "Timeless (Hard to pin down)",
+    "Prematurely aging (Greying/Wrinkles early)",
+    "Artificially preserved (Botox/Fillers)"
+  ],
+  "vocal_resonance": [
+    "Deep Bass (Chest resonance)",
+    "Rich Baritone",
+    "Warm Tenor",
+    "Bright Alto",
+    "Light Soprano",
+    "Gravelly / Smoker's Rasp",
+    "Breathy / Airy",
+    "Nasal / Piercing",
+    "Vocal Fry (Creaky)",
+    "Booming / Projecting",
+    "Whisper-quiet / Low volume",
+    "Monotone / Flat",
+    "Melodic / Singsong"
+  ],
+  "speech_patterns": [
+    "Rapid-fire / Pressured speech",
+    "Slow drawl / Measured pacing",
+    "Highly articulate / Academic",
+    "Street slang / Colloquial heavy",
+    "Mumbles / Slurs words together",
+    "Excessive fillers (um, like, uh)",
+    "Staccato / Clipped sentences",
+    "Verbose / Flowery descriptions",
+    "Dry sarcasm / Deadpan delivery",
+    "Hyper-enthusiastic / High energy",
+    "Soft-spoken / Timid",
+    "Interrupts frequently",
+    "Pauses often to think"
+  ],
+  "accent_profile": [
+    "Neutral / General American",
+    "Regional US (Southern Drawl)",
+    "Regional US (Boston/NY abrasive)",
+    "Regional US (Midwestern flat)",
+    "Received Pronunciation (Posh British)",
+    "Cockney / Working Class British",
+    "Australian / NZ twang",
+    "Eastern European lilt",
+    "Romance Language undertones (French/Spanish/Italian)",
+    "Scandanavian clip",
+    "Code-switcher (Changes based on audience)"
+  ]
+}

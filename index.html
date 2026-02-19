@@ -36,6 +36,49 @@
             Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2 
         } from 'https://esm.sh/lucide-react@0.303.0';
 
+        // --- Configuration Data ---
+        const CHARACTER_ARCHETYPES = {
+            "core_identity": {
+                "gender_presentation": [
+                    "Masculine (Traditional)", "Hyper-Masculine (Rugged)", "Soft Masculine (Pretty Boy)",
+                    "Refined / Metrosexual", "Tactical / Utilitarian", "Leather / Kink"
+                ],
+                "age_bracket": [
+                    "Young Adult (18-24) - The Ephebe", "Prime (25-34) - The Hero",
+                    "Mature (35-44) - The Daddy", "Distinguished (45-54) - The Silver Fox",
+                    "Elder (55+) - The Patriarch"
+                ]
+            },
+            "physique_macro": {
+                "height": ["Short King (5'4\" - 5'7\")", "Average (5'8\" - 5'10\")", "Tall (5'11\" - 6'2\")", "Towering (6'3\" - 6'6\")", "Giant (6'7\"+)"],
+                "body_composition": ["Ectomorph (Lean/Lanky)", "Mesomorph (Naturally Muscular)", "Endomorph (Broad/Heavy)", "Dad Bod (Soft torso, strong limbs)"],
+                "muscle_definition": ["Ottermode (Slim swimmer's build)", "Athletic (Functional strength)", "Bodybuilder (Hypertrophic/Veiny)", "Bear (Muscle under fat)", "Powerlifter (Thick core/Massive)", "Laborer (Wiry/Calloused strength)", "Doughy / Soft"],
+                "shoulder_to_waist_ratio": ["Rectangular", "V-Taper", "Dorito (Extreme taper)", "Pear"],
+                "hands_and_feet": ["Average", "Large / Heavy-set", "Pianist (Long fingers)", "Mechanic's Hands (Thick/Scarred)", "Veiny / Vascular"]
+            },
+            "physique_micro": {
+                "facial_hair_style": ["Clean Shaven", "Heavy Stubble", "Designer Stubble", "Goatee", "Anchor", "Full Beard (Groomed)", "Full Beard (Lumberjack)", "Mutton Chops", "Mustache (Chevron)", "Mustache (Handlebar)", "Patchy"],
+                "body_hair_density": ["Smooth / Shaved", "Natural / Light", "Treasure Trail only", "Hairy Chest / Stomach", "Otter (Moderate all over)", "Bear / Wolf (Dense fur everywhere)", "Back hair present"],
+                "genital_metrics": {
+                    "flaccid_hang": ["Compact", "Average", "Heavy/Shower"],
+                    "testicular_size": ["Tight/High", "Average", "Low hangers"]
+                },
+                "vascularity": ["Hidden", "Forearms only", "Biceps and Forearms", "Roadmap", "Full body pump"]
+            },
+            "style_and_scent": {
+                "wardrobe_aesthetic": ["Suit & Tie", "Blue Collar", "Gym Rat", "Streetwear", "Tactical", "Rocker", "Minimalist", "Country", "Uniformed"]
+            },
+            "psychology_archetype": {
+                "dominant_vibe": ["The Stoic Protector", "The Golden Retriever", "The Bad Boy", "The Stern Father", "The Intellectual", "The Charmer", "The Broken Hero", "The Everyman"],
+                "daddy_issues_vector": ["Nurturing Daddy", "Strict Daddy", "Absent Daddy", "Sugar Daddy", "Mentor", "Zaddy"],
+                "emotional_availability": ["Open book", "Guarded but warm", "Wall of Ice", "Volatile", "Clinically detached"]
+            },
+            "intimacy_dynamics": {
+                "role_preference": ["Dominant Top", "Service Top", "Gentle Dom", "Power Bottom", "Submissive Bottom", "Verse / Switch", "Side"],
+                "kinks_interests": ["Praise / Degradation", "Bondage", "Impact", "Somnophilia", "Exhibitionism", "Voyeurism", "Edging", "Free Use", "Breeding fantasy", "Size Kink", "Rough Trade"]
+            }
+        };
+
         const AdonisEngineApp = () => {
             // --- State Management ---
             const [apiKey, setApiKey] = useState('');
@@ -105,25 +148,15 @@
                         const name = model.name.toLowerCase();
                         const methods = model.supportedGenerationMethods || [];
 
-                        // Filter utility/blocked models
-                        if (name.includes('embedding') || name.includes('aqa') || name.includes('answer') || name.includes('veo')) {
-                            return;
-                        }
+                        if (name.includes('embedding') || name.includes('aqa') || name.includes('answer') || name.includes('veo')) return;
 
                         const modelId = model.name.replace('models/', '');
                         const modelObj = { id: modelId, displayName: model.displayName || modelId };
 
-                        // Image Models
-                        if (name.includes('imagen') || name.includes('image')) {
-                            imageOpts.push(modelObj);
-                        } 
-                        // Text Models
-                        if (methods.includes('generateContent') && !name.includes('vision') && !name.includes('image')) {
-                            textOpts.push(modelObj);
-                        }
+                        if (name.includes('imagen') || name.includes('image')) imageOpts.push(modelObj);
+                        if (methods.includes('generateContent') && !name.includes('vision') && !name.includes('image')) textOpts.push(modelObj);
                     });
 
-                    // Sort: Gemini first, then version descending
                     const sortFn = (a, b) => {
                         const aIsGemini = a.id.includes('gemini');
                         const bIsGemini = b.id.includes('gemini');
@@ -138,7 +171,6 @@
                     setAvailableTextModels(textOpts);
                     setAvailableImageModels(imageOpts);
 
-                    // Set defaults if current selection isn't valid
                     if (textOpts.length > 0 && !textOpts.find(m => m.id === selectedTextModel)) {
                         const flash = textOpts.find(m => m.id.includes('flash'));
                         setSelectedTextModel(flash ? flash.id : textOpts[0].id);
@@ -159,18 +191,19 @@
             const DEFAULT_SYSTEM_PROMPT = `
                 You are an expert 3D character artist and prompt engineer specializing in physically desirable male character design.
                 
-                YOUR GOAL: Write MASSIVELY DETAILED, anatomical, and structured descriptions of HUMAN MEN.
+                YOUR GOAL: Write MASSIVELY DETAILED, anatomical, and structured descriptions of HUMAN MEN based on the provided detailed profile.
                 
                 CONSTRAINT: STRICTLY HUMAN CHARACTERS ONLY.
                 - NO fantasy races (elves, orcs, aliens).
                 - NO magic, glowing eyes, or unrealistic skin colors.
-                - CRITICAL: VARY THE AESTHETIC. Do not default to "rugged bodybuilder".
-                - Create "Pretty" men, "Elegant" men, "Lean" men, "Soft" men, as well as "Strong" men.
+                - TRANSLATE metaphors (e.g. "gorilla-like") into human anatomical terms (e.g. "extremely dense body hair").
                 
-                METAPHOR HANDLING (CRITICAL):
-                - If the user uses comparisons like "like a gorilla", "bear-like", or "animalistic", interpret these as STRICTLY HUMAN descriptors of size, hairiness, or intensity.
-                - DO NOT include the animal name in the final prompt output to the image generator.
-                - TRANSLATE metaphors into anatomical terms. Example: "Hairy like a gorilla" -> "Extremely dense, thick, dark androgenic body hair covering arms, chest, and shoulders."
+                HANDLING EXPLICIT TRAITS:
+                - The user profile may contain explicit "genital_metrics" or "kinks" (e.g. "Heavy shower", "Bondage").
+                - YOU MUST TRANSLATE THESE into "Safe for Work" visual cues for the image generator.
+                - Example: "Heavy shower" -> "Confident, heavy athletic profile in fitted underwear".
+                - Example: "Bondage" -> "Visual cues of restraint, leather harness, or dominant posture".
+                - DO NOT use explicit sexual language in the final output.
                 
                 CRITICAL OUTPUT FORMAT:
                 You must output the prompt in the following STRICT SECTIONS:
@@ -179,36 +212,71 @@
                 (Describe render style: "High-fidelity 3D animated render, stylized realism, premium adult animation aesthetic, soft studio lighting")
 
                 [Subject Physique & Features]
-                (Describe body type, muscle definition, skin texture, facial structure. E.g., "Lean swimmer build", "Soft boyish features", "Rugged weathered skin")
+                (Describe body type, muscle definition, skin texture, facial structure based on age and body composition.)
 
                 [Hair & Grooming]
-                (Describe hairstyle, beard/stubble, body hair grooming. Be specific about texture and color.)
+                (Describe hairstyle, beard/stubble, body hair grooming based on the profile.)
 
                 [Adornments & Details]
-                (Describe piercings, tattoos, scars, glasses, sweat, dirt, or specific realistic details.)
+                (Describe vascularity, hands, scars, sweat, dirt, or specific details from the profile.)
 
                 [Torso Anatomy & Hair Texture]
-                (Describe chest, abs, muscle groups, body hair patterns. E.g., "Thick mat of chest hair", "Smooth hairless definition", "Vascularity")
+                (Describe chest, abs, muscle groups, body hair patterns. Be specific about density.)
 
                 [Arms & Hands]
-                (Describe arm muscles, veins, hand size/texture, tattoos.)
+                (Describe arm muscles, veins, hand size/texture.)
 
                 [Legs & Lower Body]
                 (Describe thigh/calf muscles, leg hair density, footwear.)
 
                 [Attire & Pose]
-                (Describe clothing fit, fabric, specific cut, and the character's pose/background. Clothing should be realistic.)
-
-                SAFETY GUIDELINES (STRICT):
-                - Focus on "desirability" but KEEP IT SAFE FOR WORK.
-                - Use clinical/artistic terms for anatomy (e.g., "v-taper", "defined quads", "fitted briefs", "athletic profile").
-                - DO NOT use explicit sexual language or describe genitalia. Use terms like "athletic fit" or "contoured" for clothing.
+                (Describe clothing fit, fabric, specific cut. Incorporate the "Vibe" and "Role" into the pose.)
                 
                 When the user asks for a modification:
                 1. READ the Current Prompt.
                 2. INTEGRATE the change seamlessly into the relevant section.
                 3. OUTPUT ONLY the raw prompt text in the structured format above.
             `;
+
+            // --- Helper: Random Selection Logic ---
+            const rollCharacter = () => {
+                const selections = {};
+                
+                // Recursively traverse the archetypes object
+                const traverseAndPick = (obj) => {
+                    const result = {};
+                    for (const key in obj) {
+                        if (Array.isArray(obj[key])) {
+                            // Pick random item from array
+                            const randomIndex = Math.floor(Math.random() * obj[key].length);
+                            result[key] = obj[key][randomIndex];
+                        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                            // Recursively go deeper
+                            result[key] = traverseAndPick(obj[key]);
+                        }
+                    }
+                    return result;
+                };
+
+                return traverseAndPick(CHARACTER_ARCHETYPES);
+            };
+
+            const formatProfileToString = (profile) => {
+                // Flatten the object into a readable string for the LLM
+                let description = "Create a character with these specific traits:\n";
+                
+                const processObj = (obj, prefix = "") => {
+                    for (const key in obj) {
+                        if (typeof obj[key] === 'object' && obj[key] !== null) {
+                            processObj(obj[key], prefix + key + " > ");
+                        } else {
+                            description += `- ${prefix}${key}: ${obj[key]}\n`;
+                        }
+                    }
+                };
+                processObj(profile);
+                return description;
+            };
 
             // --- API Helpers ---
 
@@ -241,7 +309,7 @@
                         promptContext = `CURRENT PROMPT:\n"${currentPromptSnapshot}"\n\nUSER REQUEST: Change the character based on this instruction: "${userMessage}". \n\nRemember to output ONLY the updated full prompt in the structured format.`;
                     } else {
                         // Creation Flow (New or Rolled)
-                        promptContext = `USER REQUEST: Create a new male character description. \n\nINSTRUCTION: ${userMessage}. \n\nEnsure you use the full structured format with all sections. Make it vivid and distinct. Translate any animal metaphors into human anatomy.`;
+                        promptContext = `USER REQUEST: Create a new male character description. \n\nINSTRUCTION: ${userMessage}. \n\nEnsure you use the full structured format with all sections. Make it vivid and distinct. Translate internal metrics (like "Heavy Shower" or "Kinks") into visual/vibe equivalents suitable for a PG-13 image.`;
                     }
 
                     finalPayload = {
@@ -274,14 +342,12 @@
             const callImageAPI = async (promptText) => {
                 if (!apiKey) throw new Error("API Key Required. Check Settings.");
                 
-                // Determine logic based on model name
                 let endpoint = 'generateContent';
                 let payload = {
                     contents: [{ parts: [{ text: promptText }] }],
                     generationConfig: { responseModalities: ["IMAGE"] }
                 };
 
-                // Legacy logic for older Imagen models if they don't support generateContent
                 if (selectedImageModel.includes('imagen') && !selectedImageModel.includes('3')) {
                     endpoint = 'predict';
                     payload = {
@@ -308,7 +374,6 @@
 
                     const data = await response.json();
                     
-                    // Parse response logic
                     let base64Image = null;
                     if (data.predictions && data.predictions[0]) {
                         base64Image = data.predictions[0].bytesBase64Encoded;
@@ -451,6 +516,7 @@
                 executeGeneration(safePrompt, updatedChat);
             };
 
+            // --- THE NEW RANDOMIZER (Structured Data) ---
             const generateNewBase = async () => {
                 setError(null);
                 
@@ -460,61 +526,49 @@
                     return;
                 }
 
-                setChatHistory([{ role: 'system', text: 'Rolling a new, unique male character concept...', type: 'text' }]);
+                setChatHistory([{ role: 'system', text: 'Rolling new character attributes from database...', type: 'text' }]);
                 setIsTextLoading(true);
                 setGeneratedImage(null);
                 setCurrentPrompt("");
 
-                // Random elements for seed generation
-                const vibes = ["Stoic & Mysterious", "Cheerful & Golden Retriever", "Intense & Brooding", "Sophisticated & Elegant", "Laid-back & Easygoing", "Sharp & Intellectual", "Rugged & Weathered", "Ethereal & Artistic", "Boyish & Charming", "Rebellious & Edgy"];
-                const roles = ["Florist", "Architect", "Boxer", "Ceramicist", "Chef", "Violinist", "Bike Messenger", "Sommelier", "Rancher", "Software Developer", "Marine Biologist", "Fashion Designer", "Pilot", "Sculptor", "Yoga Instructor", "Barber"];
-                const settings = ["Sunlit industrial loft", "Rain-slicked neon street", "Cozy book-filled library", "Minimalist modern office", "Dusty sun-drenched workshop", "Serene misty garden", "Crowded subway station", "Quiet cabin porch"];
-                const bodyTypes = ["Lean & Wiry (Runner)", "Massive & Muscular (Powerlifter)", "Defined & Aesthetic (Swimmer)", "Soft & Healthy (Dad bod)", "Slender & Elegant (Dancer)"];
-                const groomingStyles = ["Clean shaven & smooth", "Heavy stubble & chest hair", "Full groomed beard & hairy", "Long flowing hair & smooth", "Buzz cut & light stubble"];
+                // 1. Roll Random Attributes
+                const rolledProfile = rollCharacter();
+                
+                // 2. Format as String
+                const profileString = formatProfileToString(rolledProfile);
 
-                const rVibe = vibes[Math.floor(Math.random() * vibes.length)];
-                const rRole = roles[Math.floor(Math.random() * roles.length)];
-                const rSetting = settings[Math.floor(Math.random() * settings.length)];
-                const rBody = bodyTypes[Math.floor(Math.random() * bodyTypes.length)];
-                const rGrooming = groomingStyles[Math.floor(Math.random() * groomingStyles.length)];
-
-                // CONTEXT-AWARE LOGIC: Check if user typed anything in the box
+                // 3. Context Aware Construction
                 let seedInstruction = "";
+                let contextMsg = "";
                 
                 if (userInput.trim()) {
                     // User provided specific guidance
+                    contextMsg = `Rolled with guidance: "${userInput}"`;
                     seedInstruction = `
                         Create a unique human male character description.
                         
                         **PRIMARY DIRECTIVE:** The user specifically requested: "${userInput}".
                         You MUST respect this request above all else.
                         
-                        **SECONDARY INSPIRATION:** Use the following random traits to fill in any gaps NOT specified by the user:
-                        - Vibe: ${rVibe}
-                        - Role: ${rRole}
-                        - Setting: ${rSetting}
-                        - Body: ${rBody}
-                        - Grooming: ${rGrooming}
+                        **SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:
+                        ${profileString}
                         
-                        If the user request conflicts with a random trait (e.g. user says "clean shaven" but random says "beard"), IGNORE the random trait and OBEY the user.
+                        If the user request conflicts with a rolled trait, IGNORE the rolled trait and OBEY the user.
                         
-                        Ensure he is STRICTLY HUMAN. Translate any animal metaphors (like "gorilla") into human descriptions (like "hairy").
+                        Ensure he is STRICTLY HUMAN. Translate explicit metrics (e.g. "Heavy shower") into safe visual descriptions (e.g. "Confident fit").
                         Use the full structured output format.
                     `;
-                    // Clear input after using it for the roll
                     setUserInput("");
                 } else {
                     // Pure Random Roll
+                    contextMsg = "Random Roll: Database Attributes";
                     seedInstruction = `
-                        Create a unique human male character description.
-                        - VIBE: ${rVibe}
-                        - ROLE: ${rRole}
-                        - SETTING: ${rSetting}
-                        - BODY TYPE: ${rBody}
-                        - GROOMING: ${rGrooming}
+                        Create a unique human male character description based strictly on these rolled attributes:
+                        
+                        ${profileString}
                         
                         Combine these elements into a cohesive, physically desirable character. 
-                        Ensure he feels like a real person, not a caricature. 
+                        Translate explicit metrics into safe visual equivalents.
                         Use the full structured output format.
                     `;
                 }
@@ -522,7 +576,6 @@
                 try {
                     const newPromptText = await callGeminiText([{ role: 'user', text: seedInstruction }], null, 'generate');
                     setIsTextLoading(false);
-                    const contextMsg = userInput.trim() ? `Rolled with guidance: "${userInput}"` : `Concept: ${rVibe} ${rRole}`;
                     await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }]);
                 } catch (err) {
                     setError(err.message);

@@ -55,7 +55,7 @@
             const [generationHistory, setGenerationHistory] = useState([]);
 
             const [chatHistory, setChatHistory] = useState([
-                { role: 'system', text: 'Welcome to the Adonis Engine. Please enter your API Key in settings to load available models.', type: 'text' }
+                { role: 'system', text: 'Welcome to the Adonis Engine. Enter your API Key in settings. Type a concept and hit Roll to guide the randomness, or just hit Roll for a surprise.', type: 'text' }
             ]);
             const [userInput, setUserInput] = useState("");
             const [isTextLoading, setIsTextLoading] = useState(false);
@@ -65,7 +65,6 @@
             
             const [copyFeedback, setCopyFeedback] = useState({});
             const chatEndRef = useRef(null);
-            const taxonomyDataRef = useRef(null);
 
             // --- Load API Key from Cache on Mount ---
             useEffect(() => {
@@ -156,105 +155,6 @@
                 }
             };
 
-            // --- Taxonomy data: flatten JSON to list of { path, options, group } ---
-            const GROUP_NAMES = {
-                '01_identity': 'Identity & Voice',
-                '02_appearance': 'Physical Appearance',
-                '03_psychology': 'Psychology & Beliefs',
-                '04_sociology': 'Sociology & Lore',
-                '05_physiology': 'Physiology & Intimacy'
-            };
-
-            const flattenCategories = (obj, prefix = '', group = '') => {
-                const result = [];
-                for (const [key, value] of Object.entries(obj)) {
-                    const path = prefix ? `${prefix}.${key}` : key;
-                    if (Array.isArray(value) && value.every(x => typeof x === 'string')) {
-                        result.push({ path, options: value, group });
-                    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-                        result.push(...flattenCategories(value, path, group));
-                    }
-                }
-                return result;
-            };
-
-            const ensureDataLoaded = async () => {
-                if (taxonomyDataRef.current) return taxonomyDataRef.current;
-                const urls = [
-                    { url: '/data/01_identity.json', group: GROUP_NAMES['01_identity'] },
-                    { url: '/data/02_appearance.json', group: GROUP_NAMES['02_appearance'] },
-                    { url: '/data/03_psychology.json', group: GROUP_NAMES['03_psychology'] },
-                    { url: '/data/04_sociology.json', group: GROUP_NAMES['04_sociology'] },
-                    { url: '/data/05_physiology.json', group: GROUP_NAMES['05_physiology'] }
-                ];
-                const categoryList = [];
-                for (const { url, group } of urls) {
-                    const r = await fetch(url);
-                    if (!r.ok) throw new Error('Fetch failed');
-                    const data = await r.json();
-                    categoryList.push(...flattenCategories(data, '', group));
-                }
-                taxonomyDataRef.current = categoryList;
-                return categoryList;
-            };
-
-            const pickRandomCharacter = (categoryList) => {
-                const selections = {};
-                categoryList.forEach(({ path, options }) => {
-                    selections[path] = options[Math.floor(Math.random() * options.length)];
-                });
-                return selections;
-            };
-
-            const hasContradictions = (selections) => {
-                const age = selections.chronological_age_range;
-                const livingSpace = selections['lifestyle.living_space'];
-                const elderAges = ['Senior (60-69)', 'Elder (70+)'];
-                if (age && elderAges.includes(age) && livingSpace === "Parent's Basement") return true;
-
-                const sex = selections.biological_sex_chromosomes;
-                const genderPresentation = selections.gender_identity_presentation || '';
-                if (sex === 'Male (XY)' && genderPresentation.startsWith('Transgender Man')) return true;
-                if (sex === 'Female (XX)' && genderPresentation.startsWith('Transgender Woman')) return true;
-
-                return false;
-            };
-
-            const pathToGroup = (categoryList) => {
-                const map = {};
-                categoryList.forEach(({ path, group }) => { map[path] = group; });
-                return map;
-            };
-
-            const buildGroupedSeedText = (selections, categoryList, userFilterText) => {
-                const path2group = pathToGroup(categoryList);
-                const byGroup = {};
-                Object.entries(selections).forEach(([path, value]) => {
-                    const group = path2group[path] || 'Other';
-                    if (!byGroup[group]) byGroup[group] = [];
-                    byGroup[group].push({ path, value });
-                });
-                const order = [GROUP_NAMES['01_identity'], GROUP_NAMES['02_appearance'], GROUP_NAMES['03_psychology'], GROUP_NAMES['04_sociology'], GROUP_NAMES['05_physiology']];
-                const sections = order.filter(g => byGroup[g]).map(group => {
-                    const lines = (byGroup[group] || []).map(({ path, value }) => `${path}: ${value}`);
-                    return `--- ${group} ---\n${lines.join('\n')}`;
-                });
-                let block = sections.join('\n\n');
-                if (userFilterText && userFilterText.trim()) {
-                    block += `\n\nUSER FILTER / PREFERENCE (the character MUST satisfy this): ${userFilterText.trim()}`;
-                }
-                return block;
-            };
-
-            const buildPhysicalAppearanceSeed = (selections, categoryList) => {
-                const path2group = pathToGroup(categoryList);
-                const appearanceGroup = GROUP_NAMES['02_appearance'];
-                const lines = Object.entries(selections)
-                    .filter(([path]) => path2group[path] === appearanceGroup)
-                    .map(([path, value]) => `${path}: ${value}`);
-                return lines.join('\n');
-            };
-
             // --- Constants & System Prompts ---
             const DEFAULT_SYSTEM_PROMPT = `
                 You are an expert 3D character artist and prompt engineer specializing in physically desirable male character design.
@@ -266,6 +166,11 @@
                 - NO magic, glowing eyes, or unrealistic skin colors.
                 - CRITICAL: VARY THE AESTHETIC. Do not default to "rugged bodybuilder".
                 - Create "Pretty" men, "Elegant" men, "Lean" men, "Soft" men, as well as "Strong" men.
+                
+                METAPHOR HANDLING (CRITICAL):
+                - If the user uses comparisons like "like a gorilla", "bear-like", or "animalistic", interpret these as STRICTLY HUMAN descriptors of size, hairiness, or intensity.
+                - DO NOT include the animal name in the final prompt output to the image generator.
+                - TRANSLATE metaphors into anatomical terms. Example: "Hairy like a gorilla" -> "Extremely dense, thick, dark androgenic body hair covering arms, chest, and shoulders."
                 
                 CRITICAL OUTPUT FORMAT:
                 You must output the prompt in the following STRICT SECTIONS:
@@ -305,34 +210,6 @@
                 3. OUTPUT ONLY the raw prompt text in the structured format above.
             `;
 
-            const PROMPT_EXPANSION_COMPILER = `You are the Prompt Expansion Compiler. Your objective is to take a raw "Character Seed" (a random set of characteristics) and translate it into a dense, highly descriptive, comma-separated prompt optimized for an image generation engine.
-
-You must act as an objective visual translator. Do not inject narrative tone, personality, or gendered assumptions beyond what is strictly provided in the input. Focus entirely on visual fidelity, anatomical accuracy, and material textures.
-
-CONSTRAINTS (NON-NEGOTIABLE):
-
-GROUNDED ANATOMY: Maintain anatomically correct proportions and realistic physical features based on the provided traits.
-
-OBJECTIVE DESCRIPTIONS: Use neutral, purely visual language. Describe physical presence, structural features, and materials without applying a subjective emotional lens.
-
-SAFETY & RATING: Keep all descriptions grounded and PG-13. Focus on natural anatomy, realistic body types, and functional attire. Avoid explicit, hyper-sexualized, or exaggerated language.
-
-FORMATTING: Synthesize all details into a single, flowing, comma-separated paragraph. Do NOT use brackets, parentheses, bullet points, or section titles in your final output.
-
-YOUR GOAL:
-Expand the provided "Character Seed" into a highly detailed image generation prompt following this conceptual flow (written as one continuous string):
-
-Subject & Physiology: Describe the physical form based on the input traits. Detail the facial structure, skin texture (e.g., freckles, vitiligo, pores, wrinkles), eye shape, hair type, and resting posture.
-
-Styling & Apparel: Describe the clothing fit, specific fabric textures (e.g., linen, denim, synthetic weaves, heavy knit), accessories, and grooming details.
-
-Environment & Lighting: Describe the surrounding environment, atmospheric elements (e.g., dust, fog, humidity), and the specific lighting setup (e.g., soft diffused daylight, harsh neon, cinematic rim lighting).
-
-Style & Medium: Append the exact visual style string requested for this generation to the very end of your prompt.
-
-OUTPUT:
-(A single, dense, comma-separated paragraph containing the expanded visual description and the Style Directive at the end).`;
-
             // --- API Helpers ---
 
             const callGeminiText = async (messages, currentPromptSnapshot, mode = 'generate') => {
@@ -355,20 +232,16 @@ OUTPUT:
                         "${currentPromptSnapshot}"
                         ` }] }]
                     };
-                } else if (mode === 'expand') {
-                    const characterSeed = messages[messages.length - 1].text;
-                    finalPayload = {
-                        contents: [{ parts: [{ text: `Expand this Character Seed into an image generation prompt.\n\nCharacter Seed:\n${characterSeed}` }] }],
-                        systemInstruction: { parts: [{ text: PROMPT_EXPANSION_COMPILER }] }
-                    };
                 } else {
                     const userMessage = messages[messages.length - 1].text;
                     let promptContext = "";
                     
                     if (currentPromptSnapshot) {
+                        // Modification Flow
                         promptContext = `CURRENT PROMPT:\n"${currentPromptSnapshot}"\n\nUSER REQUEST: Change the character based on this instruction: "${userMessage}". \n\nRemember to output ONLY the updated full prompt in the structured format.`;
                     } else {
-                        promptContext = `USER REQUEST: Create a new male character description based on: "${userMessage}". Ensure you use the full structured format with all sections. Make it vivid and distinct.`;
+                        // Creation Flow (New or Rolled)
+                        promptContext = `USER REQUEST: Create a new male character description. \n\nINSTRUCTION: ${userMessage}. \n\nEnsure you use the full structured format with all sections. Make it vivid and distinct. Translate any animal metaphors into human anatomy.`;
                     }
 
                     finalPayload = {
@@ -580,56 +453,77 @@ OUTPUT:
 
             const generateNewBase = async () => {
                 setError(null);
-
+                
                 if (!apiKey) {
                     setError("API Key Required. Please enter it in Settings (⚙️).");
                     setShowSettings(true);
                     return;
                 }
 
-                const userFilter = (userInput || '').trim();
-                const rollMessage = userFilter
-                    ? `Rolling a new, unique male character concept with your filter: "${userFilter}"...`
-                    : 'Rolling a new, unique male character concept...';
-                setChatHistory([{ role: 'system', text: rollMessage, type: 'text' }]);
+                setChatHistory([{ role: 'system', text: 'Rolling a new, unique male character concept...', type: 'text' }]);
                 setIsTextLoading(true);
                 setGeneratedImage(null);
                 setCurrentPrompt("");
 
-                let categoryList;
+                // Random elements for seed generation
+                const vibes = ["Stoic & Mysterious", "Cheerful & Golden Retriever", "Intense & Brooding", "Sophisticated & Elegant", "Laid-back & Easygoing", "Sharp & Intellectual", "Rugged & Weathered", "Ethereal & Artistic", "Boyish & Charming", "Rebellious & Edgy"];
+                const roles = ["Florist", "Architect", "Boxer", "Ceramicist", "Chef", "Violinist", "Bike Messenger", "Sommelier", "Rancher", "Software Developer", "Marine Biologist", "Fashion Designer", "Pilot", "Sculptor", "Yoga Instructor", "Barber"];
+                const settings = ["Sunlit industrial loft", "Rain-slicked neon street", "Cozy book-filled library", "Minimalist modern office", "Dusty sun-drenched workshop", "Serene misty garden", "Crowded subway station", "Quiet cabin porch"];
+                const bodyTypes = ["Lean & Wiry (Runner)", "Massive & Muscular (Powerlifter)", "Defined & Aesthetic (Swimmer)", "Soft & Healthy (Dad bod)", "Slender & Elegant (Dancer)"];
+                const groomingStyles = ["Clean shaven & smooth", "Heavy stubble & chest hair", "Full groomed beard & hairy", "Long flowing hair & smooth", "Buzz cut & light stubble"];
+
+                const rVibe = vibes[Math.floor(Math.random() * vibes.length)];
+                const rRole = roles[Math.floor(Math.random() * roles.length)];
+                const rSetting = settings[Math.floor(Math.random() * settings.length)];
+                const rBody = bodyTypes[Math.floor(Math.random() * bodyTypes.length)];
+                const rGrooming = groomingStyles[Math.floor(Math.random() * groomingStyles.length)];
+
+                // CONTEXT-AWARE LOGIC: Check if user typed anything in the box
+                let seedInstruction = "";
+                
+                if (userInput.trim()) {
+                    // User provided specific guidance
+                    seedInstruction = `
+                        Create a unique human male character description.
+                        
+                        **PRIMARY DIRECTIVE:** The user specifically requested: "${userInput}".
+                        You MUST respect this request above all else.
+                        
+                        **SECONDARY INSPIRATION:** Use the following random traits to fill in any gaps NOT specified by the user:
+                        - Vibe: ${rVibe}
+                        - Role: ${rRole}
+                        - Setting: ${rSetting}
+                        - Body: ${rBody}
+                        - Grooming: ${rGrooming}
+                        
+                        If the user request conflicts with a random trait (e.g. user says "clean shaven" but random says "beard"), IGNORE the random trait and OBEY the user.
+                        
+                        Ensure he is STRICTLY HUMAN. Translate any animal metaphors (like "gorilla") into human descriptions (like "hairy").
+                        Use the full structured output format.
+                    `;
+                    // Clear input after using it for the roll
+                    setUserInput("");
+                } else {
+                    // Pure Random Roll
+                    seedInstruction = `
+                        Create a unique human male character description.
+                        - VIBE: ${rVibe}
+                        - ROLE: ${rRole}
+                        - SETTING: ${rSetting}
+                        - BODY TYPE: ${rBody}
+                        - GROOMING: ${rGrooming}
+                        
+                        Combine these elements into a cohesive, physically desirable character. 
+                        Ensure he feels like a real person, not a caricature. 
+                        Use the full structured output format.
+                    `;
+                }
+
                 try {
-                    categoryList = await ensureDataLoaded();
-                } catch (err) {
-                    setError("Could not load character data. Serve the app from a web server (e.g. npx serve).");
+                    const newPromptText = await callGeminiText([{ role: 'user', text: seedInstruction }], null, 'generate');
                     setIsTextLoading(false);
-                    return;
-                }
-
-                const MAX_REROLLS = 20;
-                let selections = pickRandomCharacter(categoryList);
-                let attempts = 0;
-                while (hasContradictions(selections) && attempts < MAX_REROLLS) {
-                    selections = pickRandomCharacter(categoryList);
-                    attempts++;
-                }
-                let historySnapshot = [{ role: 'system', text: rollMessage, type: 'text' }];
-                if (attempts >= MAX_REROLLS && hasContradictions(selections)) {
-                    const warningMsg = { role: 'system', text: 'Some combinations were skipped for consistency.', type: 'text' };
-                    setChatHistory(prev => [...prev, warningMsg]);
-                    historySnapshot = [...historySnapshot, warningMsg];
-                }
-
-                const groupedSeedText = buildGroupedSeedText(selections, categoryList, userFilter);
-                const seedMsg = { role: 'system', text: `Character roll:\n\n${groupedSeedText}`, type: 'text' };
-                setChatHistory(prev => [...prev, seedMsg]);
-                historySnapshot = [...historySnapshot, seedMsg];
-
-                const physicalAppearanceSeed = buildPhysicalAppearanceSeed(selections, categoryList);
-
-                try {
-                    const imagePromptText = await callGeminiText([{ role: 'user', text: physicalAppearanceSeed }], null, 'expand');
-                    setIsTextLoading(false);
-                    await executeGeneration(imagePromptText, historySnapshot);
+                    const contextMsg = userInput.trim() ? `Rolled with guidance: "${userInput}"` : `Concept: ${rVibe} ${rRole}`;
+                    await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }]);
                 } catch (err) {
                     setError(err.message);
                     setIsTextLoading(false);
@@ -839,7 +733,7 @@ OUTPUT:
                         </div>
                         <div className="p-4 bg-slate-800 border-t border-slate-700">
                             <form onSubmit={handleSendMessage} className="flex gap-2">
-                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Describe changes (e.g., 'Make his beard silver')" className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500 transition-all shadow-inner text-sm" disabled={isTextLoading || isImageLoading || isSanitizing} />
+                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Type details (e.g., 'hairy biker') then click Roll or Send" className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500 transition-all shadow-inner text-sm" disabled={isTextLoading || isImageLoading || isSanitizing} />
                                 <button type="submit" disabled={isTextLoading || isImageLoading || isSanitizing || !userInput.trim()} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 rounded-lg flex items-center justify-center shadow-lg"><Send className="w-5 h-5" /></button>
                             </form>
                         </div>

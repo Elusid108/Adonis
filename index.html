@@ -33,49 +33,183 @@
         import { 
             Send, RefreshCw, Settings, AlertCircle, Copy, Check, Sparkles, User, 
             Image as ImageIcon, Eye, EyeOff, MessageSquare, Download, History, X, 
-            Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2 
+            Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2, Eraser 
         } from 'https://esm.sh/lucide-react@0.303.0';
 
+        // --- App Version (bump for releases) ---
+        const APP_VERSION = "1.1";
+
+        // --- Visual Style Sections ---
+        const STYLE_SECTIONS = {
+            photo: `[Style & Medium]
+(Describe render style: "Photorealistic human male, realistic proportions, natural anatomy, no exaggerated musculature, soft studio lighting. Avoid 3D animated or stylized/cartoon proportions.")`,
+            "3d": `[Style, Medium & Lighting]
+High-fidelity 3D animated render, stylized realism, premium adult animation aesthetic. The scene is bathed in warm, dappled sunlight filtering through venetian blinds or lush tree leaves, creating shifting patterns of light and shadow across the environment and the subject's skin, evoking a sense of lazy afternoon intimacy.`
+        };
+
+        const applyStyleToPrompt = (promptText, style) => {
+            const section = STYLE_SECTIONS[style];
+            const styleRegex = /\[Style[^\]]*\][\s\S]*?(?=\n\[|\n\s*$)/;
+            return promptText.replace(styleRegex, section) || section + '\n\n' + promptText;
+        };
+
         // --- Configuration Data ---
+        // UPDATED: Removed metaphors like "Wolf", "Fur", and "Roadmap" to prevent non-human artifacts.
+        // INTEGRATED: Expanded facial features, posing, and environmental lighting sections.
         const CHARACTER_ARCHETYPES = {
             "core_identity": {
                 "gender_presentation": [
-                    "Masculine (Traditional)", "Hyper-Masculine (Rugged)", "Soft Masculine (Pretty Boy)",
-                    "Refined / Metrosexual", "Tactical / Utilitarian", "Leather / Kink"
+                    "Masculine (Traditional)", "Rugged (Outdoorsman)", "Soft Masculine (Boy Next Door)",
+                    "Refined (Gentleman)", "Tactical (Utility)", "Casual (Relaxed)",
+                    "Hyper-Masculine (Brawny)", "Athletic (Jock)", "Androgynous (Fluid)",
+                    "Alternative (Goth/Punk)", "Glamorous (Flamboyant)", "Preppy (Ivy League)",
+                    "Streetwear (Urban)", "Nerdy (Geek Chic)", "Regal (Aristocratic)",
+                    "Rebellious (Bad Boy)", "Dapper (Vintage)", "Edgy (Grunge)",
+                    "Lumbersexual (Woodsman)", "Sleek (Modern Minimalist)", "Bishounen (Elegant/Pretty)"
                 ],
                 "age_bracket": [
-                    "Young Adult (18-24) - The Ephebe", "Prime (25-34) - The Hero",
-                    "Mature (35-44) - The Daddy", "Distinguished (45-54) - The Silver Fox",
-                    "Elder (55+) - The Patriarch"
+                    "Young Adult (18-24)", "Prime (25-34)",
+                    "Mature (35-44)", "Distinguished (45-54)",
+                    "Elder (55+)"
                 ]
             },
             "physique_macro": {
-                "height": ["Short King (5'4\" - 5'7\")", "Average (5'8\" - 5'10\")", "Tall (5'11\" - 6'2\")", "Towering (6'3\" - 6'6\")", "Giant (6'7\"+)"],
-                "body_composition": ["Ectomorph (Lean/Lanky)", "Mesomorph (Naturally Muscular)", "Endomorph (Broad/Heavy)", "Dad Bod (Soft torso, strong limbs)"],
-                "muscle_definition": ["Ottermode (Slim swimmer's build)", "Athletic (Functional strength)", "Bodybuilder (Hypertrophic/Veiny)", "Bear (Muscle under fat)", "Powerlifter (Thick core/Massive)", "Laborer (Wiry/Calloused strength)", "Doughy / Soft"],
-                "shoulder_to_waist_ratio": ["Rectangular", "V-Taper", "Dorito (Extreme taper)", "Pear"],
-                "hands_and_feet": ["Average", "Large / Heavy-set", "Pianist (Long fingers)", "Mechanic's Hands (Thick/Scarred)", "Veiny / Vascular"]
+                "height": ["Short (5'4\" - 5'7\")", "Average (5'8\" - 5'10\")", "Tall (5'11\" - 6'2\")", "Towering (6'3\" - 6'6\")", "Giant (6'7\"+)"],
+                "body_composition": ["Ectomorph (Lean/Lanky)", "Mesomorph (Classic V-Shape)", "Endomorph (Stocky/Solid)", "Dad Bod (Soft torso, strong limbs)"],
+                "muscle_definition": [
+                    "Swimmer's build (Lean/Defined)", "Athletic (Functional strength)",
+                    "Bodybuilder (Aesthetic/Sculpted)", "Bulk (Muscle under soft layer)",
+                    "Powerlifter (Thick/Strong)", "Laborer (Wiry strength)", "Natural/Soft",
+                    "Shredded (Paper-thin skin, hyper-striated)",
+                    "Chiseled Marble (Deeply etched anatomical muscle separation)",
+                    "Mass Monster (Extreme hypertrophy, bulging muscles)",
+                    "Greek God Aesthetic (Perfectly symmetrical, classic proportions)",
+                    "Brawny / Beefy (Thick dense muscle with a hearty layer of bulk)",
+                    "Hulking Brawler (Massive traps, thick neck, imposing frame)",
+                    "Otter Mode (Extremely low body fat, sleek, lithe swimmer's core)",
+                    "Fighter / MMA Build (Wiry, explosive, highly defined core and shoulders)",
+                    "Sleeper Build (Looks average in clothes, surprisingly muscular bare)",
+                    "Overblown Comic-Book Proportions (Hyper-exaggerated peaks and valleys)",
+                    "Gymnast (Dense, compact, highly defined core)"
+                ],
+                "shoulder_to_waist_ratio": ["Rectangular", "V-Taper", "Broad shoulders", "Pear", "Extreme Dorito-Taper (Exaggerated V)"],
+                "hands_and_feet": ["Average", "Large / Heavy-set", "Long fingers", "Thick/Scarred Hands", "Prominent Veins", "Meaty / Brawny Paws"]
             },
             "physique_micro": {
-                "facial_hair_style": ["Clean Shaven", "Heavy Stubble", "Designer Stubble", "Goatee", "Anchor", "Full Beard (Groomed)", "Full Beard (Lumberjack)", "Mutton Chops", "Mustache (Chevron)", "Mustache (Handlebar)", "Patchy"],
-                "body_hair_density": ["Smooth / Shaved", "Natural / Light", "Treasure Trail only", "Hairy Chest / Stomach", "Otter (Moderate all over)", "Bear / Wolf (Dense fur everywhere)", "Back hair present"],
+                "facial_hair_style": [
+                    "Clean Shaven", "Heavy Stubble", "Designer Stubble", "Goatee", "Anchor",
+                    "Full Beard (Groomed)", "Full Beard (Natural)", "Mutton Chops",
+                    "Mustache (Chevron)", "Mustache (Handlebar)", "Patchy", "Lumberjack Beard",
+                    "5 O'clock Shadow", "Soul Patch", "Faded Beard"
+                ],
+                "body_hair_density": [
+                    "Smooth / Shaved", "Natural / Light", "Treasure Trail only", "Hairy Chest / Stomach",
+                    "Moderate Body Hair (All over)", "Extremely Dense Body Hair (Full Coverage)",
+                    "Back hair present", "Profuse Masculine Body Hair", "Thick Carpet of Chest Hair",
+                    "Dense Forest of Torso Hair (Human)", "Heavy Lumberjack-Level Body Hair",
+                    "Abundant Coarse Body Hair", "Thickly Forested Chest and Abdomen",
+                    "Full-Body Rug of Masculine Hair", "Extremely Hairy (Anatomically Human Male)",
+                    "Overgrown Natural Body Hair"
+                ],
                 "genital_metrics": {
-                    "flaccid_hang": ["Compact", "Average", "Heavy/Shower"],
-                    "testicular_size": ["Tight/High", "Average", "Low hangers"]
+                    "flaccid_hang": ["Compact", "Average", "Significant"],
+                    "testicular_size": ["Tight/High", "Average", "Low"]
                 },
-                "vascularity": ["Hidden", "Forearms only", "Biceps and Forearms", "Roadmap", "Full body pump"]
+                "vascularity": [
+                    "Hidden", "Forearms only", "Biceps and Forearms", "Hands and Forearms",
+                    "High Definition Surface Veins", "Prominent Vascularity", "Full Body Vascularity (Shredded)"
+                ]
+            },
+            "facial_features": {
+                "jawline_and_chin": [
+                    "Sharp / Chiseled (Glass-cutting jaw)", "Heavy / Square (Action hero)",
+                    "Soft / Rounded", "Prominent Cleft / Dimpled Chin", "Angular Diamond Shape",
+                    "Broad Bull-Neck Jaw", "Tapered V-Shape"
+                ],
+                "eye_shape_and_gaze": [
+                    "Heavy-Lidded (Smoldering bedroom eyes)", "Deep-Set and Piercing",
+                    "Hooded and Mysterious", "Wide and Warm (Puppy dog eyes)",
+                    "Narrowed (Intense glare)", "Playful / Squinting Smile", "Heterochromia (Mismatched colors)"
+                ],
+                "nose_structure": [
+                    "Strong Roman / Aquiline (Prominent bridge)", "Broken / Boxer's Nose (Rugged)",
+                    "Broad / Thick", "Straight and Elegant", "Upturned / Button", "Aristocratic / Regal"
+                ]
             },
             "style_and_scent": {
-                "wardrobe_aesthetic": ["Suit & Tie", "Blue Collar", "Gym Rat", "Streetwear", "Tactical", "Rocker", "Minimalist", "Country", "Uniformed"]
+                "wardrobe_aesthetic": [
+                    "Suit & Tie", "Blue Collar", "Gym Rat", "Streetwear", "Tactical",
+                    "Rocker", "Minimalist", "Country", "Uniformed", "Casual / Weekend (Shorts/Tee)",
+                    "Black Tie (Tuxedo)", "Preppy (Ivy League)", "Athleisure", "Lumberjack (Flannels & Boots)",
+                    "Biker (Leather & Denim)", "Techwear (Cyberpunk)", "Bohemian (Festival/Artisan)",
+                    "Goth / Alternative", "Skater / Surf", "High Fashion (Avant-Garde)",
+                    "Vintage Dapper (1920s-1950s)", "Academic (Tweed & Glasses)", "Loungewear (Silk Robes)",
+                    "Swimwear (Boardshorts/Briefs)", "Clubwear (Mesh/Straps/Harness)", "Hipster (Thrifted/Indie)",
+                    "Idol (Elaborate Stage Outfit)", "Y2K Nostalgia", "Sensual / Bedroom (Unbuttoned/Bare)"
+                ]
             },
             "psychology_archetype": {
-                "dominant_vibe": ["The Stoic Protector", "The Golden Retriever", "The Bad Boy", "The Stern Father", "The Intellectual", "The Charmer", "The Broken Hero", "The Everyman"],
-                "daddy_issues_vector": ["Nurturing Daddy", "Strict Daddy", "Absent Daddy", "Sugar Daddy", "Mentor", "Zaddy"],
-                "emotional_availability": ["Open book", "Guarded but warm", "Wall of Ice", "Volatile", "Clinically detached"]
+                "dominant_vibe": [
+                    "The Stoic Protector", "The Friendly/Warm", "The Rebellious", "The Stern Authority",
+                    "The Intellectual", "The Charmer", "The Resilient", "The Everyman",
+                    "The Grumpy Softie (Tough exterior, heart of gold)", "The Golden Retriever (Endlessly enthusiastic)",
+                    "The Brooding Loner (Quiet, observant, intense)", "The High-Powered Executive (Ruthless but generous)",
+                    "The Gentle Giant (Intimidating size, soft demeanor)", "The Cocky Jock (Arrogant but playfully charming)",
+                    "The Haunted Veteran (Carrying heavy baggage, fiercely loyal)", "The Dangerous Rogue (Morally grey, seductive)",
+                    "The Eccentric Creative (Passionate, unpredictable, hyper-focused)"
+                ],
+                "daddy_issues_vector": [
+                    "Nurturing", "Strict/Authoritative", "Absent/Distant", "Generous/Provider",
+                    "Mentor", "Older/Experienced", "Spoiling Sugar Daddy (Buys affection)",
+                    "Demanding Perfectionist (Hard to please, highly rewarding)",
+                    "Overprotective Guardian (Possessive and watchful)", "The Fixer (Needs to solve all your problems)",
+                    "The Emotionally Unavailable Boss (Professional boundary issues)",
+                    "The Devoted Family Man (Craves domesticity and control)"
+                ],
+                "emotional_availability": [
+                    "Open book", "Guarded but warm", "Cool/Reserved", "Volatile", "Analytical",
+                    "Emotionally Constipated (Shows love entirely through acts of service)",
+                    "Fiercely Protective but Silent (Actions speak louder than words)",
+                    "Overwhelmingly Affectionate (Touch-starved and clingy)",
+                    "Trauma-Guarded (Needs immense patience to break down walls)",
+                    "Performatively Confident (Hiding deep insecurities with bravado)",
+                    "Hypnotically Focused (Laser-focused on their partner's emotional state)"
+                ]
             },
             "intimacy_dynamics": {
-                "role_preference": ["Dominant Top", "Service Top", "Gentle Dom", "Power Bottom", "Submissive Bottom", "Verse / Switch", "Side"],
-                "kinks_interests": ["Praise / Degradation", "Bondage", "Impact", "Somnophilia", "Exhibitionism", "Voyeurism", "Edging", "Free Use", "Breeding fantasy", "Size Kink", "Rough Trade"]
+                "role_preference": [
+                    "Dominant", "Service-Oriented", "Gentle/Caring", "Power Dynamic",
+                    "Submissive", "Versatile", "Observer", "Pleasure Dom (Focused entirely on partner's climax)",
+                    "Bratty Sub (Playfully defiant, needs correction)", "Strict Disciplinarian (Rules and consequences)",
+                    "Worshipful / Devoted (Treats partner like a deity)", "Primal Hunter (Chase and capture dynamics)",
+                    "Reluctant Dom (Takes charge only because they were begged)", "Aftercare Specialist (Lives for the post-scene comfort)"
+                ],
+                "kinks_interests": [
+                    "Praise/Affirmation", "Restraint", "Impact/Sensation", "Somnophilia",
+                    "Exhibitionism", "Voyeurism", "Edging", "Free Use", "Fantasy",
+                    "Size Difference", "Rough/Primal", "Sensory Deprivation (Blindfolds/Headphones)",
+                    "Marking / Claiming (Obsessed with leaving visible bites/bruises)", "Overstimulation",
+                    "Breeding Kink (Primal claiming fantasies)", "Mirror Voyeurism (Watching themselves/partner in the glass)",
+                    "Public Risk (Thrill-seeking in semi-public places)", "Scent Fetish (Intoxicated by partner's natural musk)",
+                    "Worship / Begging", "Tease and Denial (Prolonged, agonizing anticipation)", "Temperature Play (Ice/Wax)"
+                ]
+            },
+            "poses_and_posture": {
+                "attitude_and_stance": [
+                    "Relaxed Lounging (Sprawled out)", "Alpha / Dominant Stance (Wide base, chest out)",
+                    "Casual Lean (Against a wall or doorframe)", "Hands Deep in Pockets",
+                    "Dynamic Action (Mid-movement)", "Adjusting Tie / Cuffs (Dapper)",
+                    "Over-The-Shoulder Glance", "Flexing / Posing (Checking out gains)",
+                    "Brooding / Head Down (Looking up through brows)", "Stretching (Arms overhead, shirt lifting)"
+                ]
+            },
+            "environment_and_lighting": {
+                "cinematic_lighting": [
+                    "Moody Chiaroscuro (Harsh shadows, high contrast)", "Cinematic Rim Lighting (Glowing outline)",
+                    "Soft Studio Portrait (Even, flattering light)", "Harsh Overhead Gym Fluorescents (Emphasizes definition)",
+                    "Golden Hour (Warm, sun-drenched)", "Neon Cyberpunk Glow (Pink, blue, and purple hues)",
+                    "Under-lit (Sinister or imposing shadows)", "Dappled Sunlight (Through blinds or trees)"
+                ]
             }
         };
 
@@ -95,7 +229,10 @@
 
             const [currentPrompt, setCurrentPrompt] = useState("");
             const [generatedImage, setGeneratedImage] = useState(null);
+            const [generatedImagePhoto, setGeneratedImagePhoto] = useState(null);
+            const [generatedImage3d, setGeneratedImage3d] = useState(null);
             const [generationHistory, setGenerationHistory] = useState([]);
+            const [visualStyle, setVisualStyle] = useState(() => localStorage.getItem('adonis_visual_style') || 'photo');
 
             const [chatHistory, setChatHistory] = useState([
                 { role: 'system', text: 'Welcome to the Adonis Engine. Enter your API Key in settings. Type a concept and hit Roll to guide the randomness, or just hit Roll for a surprise.', type: 'text' }
@@ -109,7 +246,7 @@
             const [copyFeedback, setCopyFeedback] = useState({});
             const chatEndRef = useRef(null);
 
-            // --- Load API Key from Cache on Mount ---
+            // --- Load API Key and Visual Style from Cache on Mount ---
             useEffect(() => {
                 const cachedKey = localStorage.getItem('adonis_gemini_key');
                 if (cachedKey) {
@@ -117,6 +254,9 @@
                 } else {
                     setShowSettings(true);
                 }
+                const cachedStyle = localStorage.getItem('adonis_visual_style');
+                if (cachedStyle === '3d' || cachedStyle === 'photo') setVisualStyle(cachedStyle);
+                document.title = `Adonis Engine v${APP_VERSION} | PixelForge`;
             }, []);
 
             // --- Fetch Models when Key Changes ---
@@ -189,7 +329,7 @@
 
             // --- Constants & System Prompts ---
             const DEFAULT_SYSTEM_PROMPT = `
-                You are an expert 3D character artist and prompt engineer specializing in physically desirable male character design.
+                You are an expert at writing detailed, anatomical descriptions of physically desirable human men for image generation.
                 
                 YOUR GOAL: Write MASSIVELY DETAILED, anatomical, and structured descriptions of HUMAN MEN based on the provided detailed profile.
                 
@@ -197,6 +337,13 @@
                 - NO fantasy races (elves, orcs, aliens).
                 - NO magic, glowing eyes, or unrealistic skin colors.
                 - TRANSLATE metaphors (e.g. "gorilla-like") into human anatomical terms (e.g. "extremely dense body hair").
+                - Use REALISTIC, natural human proportions: no exaggerated muscle size, no tiny head or oversized body. Default style is realistic/photographic (literal human reference), not animated or stylized.
+                
+                CLOTHING REALISM (CRITICAL):
+                - When the character wears a shirt, jacket, or other top: clothing must be OPAQUE and NORMAL.
+                - NEVER describe body hair visible through fabric, or muscle definition showing through a standard shirt.
+                - No strategically cut, sheer, or transparent tops unless explicitly requested.
+                - Standard shirts and jackets fully cover the torso — no weird cuts to expose abs or chest.
                 
                 HANDLING EXPLICIT TRAITS:
                 - The user profile may contain explicit "genital_metrics" or "kinks" (e.g. "Heavy shower", "Bondage").
@@ -209,7 +356,7 @@
                 You must output the prompt in the following STRICT SECTIONS:
 
                 [Style & Medium]
-                (Describe render style: "High-fidelity 3D animated render, stylized realism, premium adult animation aesthetic, soft studio lighting")
+                (Describe render style: "Photorealistic human male, realistic proportions, natural anatomy, no exaggerated musculature, soft studio lighting. Avoid 3D animated or stylized/cartoon proportions.")
 
                 [Subject Physique & Features]
                 (Describe body type, muscle definition, skin texture, facial structure based on age and body composition.)
@@ -230,7 +377,7 @@
                 (Describe thigh/calf muscles, leg hair density, footwear.)
 
                 [Attire & Pose]
-                (Describe clothing fit, fabric, specific cut. Incorporate the "Vibe" and "Role" into the pose.)
+                (Describe clothing fit, fabric, specific cut. Incorporate the "Vibe" and "Role" into the pose. If clothed: use opaque, normal garments — no sheer fabric, no body hair or abs visible through shirts.)
                 
                 When the user asks for a modification:
                 1. READ the Current Prompt.
@@ -242,16 +389,13 @@
             const rollCharacter = () => {
                 const selections = {};
                 
-                // Recursively traverse the archetypes object
                 const traverseAndPick = (obj) => {
                     const result = {};
                     for (const key in obj) {
                         if (Array.isArray(obj[key])) {
-                            // Pick random item from array
                             const randomIndex = Math.floor(Math.random() * obj[key].length);
                             result[key] = obj[key][randomIndex];
                         } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                            // Recursively go deeper
                             result[key] = traverseAndPick(obj[key]);
                         }
                     }
@@ -262,7 +406,6 @@
             };
 
             const formatProfileToString = (profile) => {
-                // Flatten the object into a readable string for the LLM
                 let description = "Create a character with these specific traits:\n";
                 
                 const processObj = (obj, prefix = "") => {
@@ -305,10 +448,8 @@
                     let promptContext = "";
                     
                     if (currentPromptSnapshot) {
-                        // Modification Flow
                         promptContext = `CURRENT PROMPT:\n"${currentPromptSnapshot}"\n\nUSER REQUEST: Change the character based on this instruction: "${userMessage}". \n\nRemember to output ONLY the updated full prompt in the structured format.`;
                     } else {
-                        // Creation Flow (New or Rolled)
                         promptContext = `USER REQUEST: Create a new male character description. \n\nINSTRUCTION: ${userMessage}. \n\nEnsure you use the full structured format with all sections. Make it vivid and distinct. Translate internal metrics (like "Heavy Shower" or "Kinks") into visual/vibe equivalents suitable for a PG-13 image.`;
                     }
 
@@ -339,7 +480,7 @@
                 }
             };
 
-            const callImageAPI = async (promptText) => {
+            const callImageAPI = async (promptText, inputImageBase64) => {
                 if (!apiKey) throw new Error("API Key Required. Check Settings.");
                 
                 let endpoint = 'generateContent';
@@ -348,12 +489,25 @@
                     generationConfig: { responseModalities: ["IMAGE"] }
                 };
 
+                // Legacy logic for older Imagen models
                 if (selectedImageModel.includes('imagen') && !selectedImageModel.includes('3')) {
                     endpoint = 'predict';
                     payload = {
                         instances: [{ prompt: promptText }],
                         parameters: { sampleCount: 1, aspectRatio: "1:1" }
                     };
+                }
+                
+                // IMAGE-TO-IMAGE LOGIC:
+                // If we have an input image and the model supports it (Gemini/Nano models generally do via generateContent)
+                if (inputImageBase64 && !selectedImageModel.includes('imagen')) {
+                    // Inject image into payload
+                    payload.contents[0].parts.push({
+                        inlineData: {
+                            mimeType: "image/png",
+                            data: inputImageBase64
+                        }
+                    });
                 }
 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedImageModel}:${endpoint}?key=${apiKey}`;
@@ -417,19 +571,28 @@
                 }, 2000);
             };
 
-            const addToHistory = (img, promptText, currentChat) => {
+            const addToHistory = (img, promptText, currentChat, extras = {}) => {
+                const { imagePhoto, image3d, visualStyle: itemStyle } = extras;
                 const newItem = {
                     id: Date.now(),
                     image: img,
+                    imagePhoto: imagePhoto ?? null,
+                    image3d: image3d ?? null,
                     prompt: promptText,
                     chat: JSON.parse(JSON.stringify(currentChat)),
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    visualStyle: itemStyle ?? visualStyle
                 };
                 setGenerationHistory(prev => [newItem, ...prev]);
             };
 
             const restoreHistoryItem = (item) => {
-                setGeneratedImage(item.image);
+                const imgPhoto = item.imagePhoto ?? null;
+                const img3d = item.image3d ?? null;
+                setGeneratedImagePhoto(imgPhoto);
+                setGeneratedImage3d(img3d);
+                const displayImage = (visualStyle === 'photo' && imgPhoto) || (visualStyle === '3d' && img3d) || item.image;
+                setGeneratedImage(displayImage);
                 setCurrentPrompt(item.prompt);
                 setChatHistory(item.chat);
                 setShowHistory(false);
@@ -446,7 +609,8 @@
                 document.body.removeChild(link);
             };
 
-            const executeGeneration = async (promptText, historySnapshot) => {
+            // Main generation loop. options: { skipAddToHistory, targetStyle, forceTextOnly }. forceTextOnly = no img2img. Returns imageUrl on success.
+            const executeGeneration = async (promptText, historySnapshot, options = {}) => {
                 setIsImageLoading(true);
                 
                 const promptMsg = { role: 'model', text: promptText, type: 'prompt' };
@@ -455,14 +619,30 @@
                 setCurrentPrompt(promptText);
 
                 try {
-                    const imageUrl = await callImageAPI(promptText);
+                    // Extract base64 from current image if available for Img2Img (skip when forceTextOnly, e.g. style toggle)
+                    let inputImageBase64 = null;
+                    if (generatedImage && !options.forceTextOnly) {
+                        inputImageBase64 = generatedImage.split(',')[1];
+                    }
+
+                    // Call Image API (with potential Image Input)
+                    const imageUrl = await callImageAPI(promptText, inputImageBase64);
                     setGeneratedImage(imageUrl);
+                    const styleForCache = options.targetStyle ?? visualStyle;
+                    if (styleForCache === 'photo') setGeneratedImagePhoto(imageUrl);
+                    else setGeneratedImage3d(imageUrl);
                     
-                    const successMsg = { role: 'system', text: `Image generated successfully using ${selectedImageModel}.`, type: 'text' };
+                    const modeLabel = inputImageBase64 ? "Refined previous image" : "Generated new image";
+                    const successMsg = { role: 'system', text: `${modeLabel} using ${selectedImageModel}.`, type: 'text' };
                     const finalChat = [...historyWithPrompt, successMsg];
                     setChatHistory(finalChat);
-                    addToHistory(imageUrl, promptText, finalChat);
-                    
+                    if (!options.skipAddToHistory) {
+                        const styleForHistory = options.targetStyle ?? visualStyle;
+                        const imagePhoto = styleForHistory === 'photo' ? imageUrl : generatedImagePhoto;
+                        const image3d = styleForHistory === '3d' ? imageUrl : generatedImage3d;
+                        addToHistory(imageUrl, promptText, finalChat, { imagePhoto, image3d, visualStyle: styleForHistory });
+                    }
+                    return imageUrl;
                 } catch (err) {
                     if (err.message === "SAFETY_BLOCK") {
                         setIsSanitizing(true);
@@ -484,6 +664,7 @@
                     } else {
                         setError(err.message);
                         setChatHistory(prev => [...prev, { role: 'system', text: `Error: ${err.message}`, type: 'text' }]);
+                        throw err;
                     }
                 } finally {
                     setIsImageLoading(false);
@@ -494,17 +675,32 @@
                 e.preventDefault();
                 if (!userInput.trim()) return;
 
-                const newMsg = { role: 'user', text: userInput, type: 'text' };
+                const modificationText = userInput.trim();
+                const newMsg = { role: 'user', text: modificationText, type: 'text' };
                 const updatedChat = [...chatHistory, newMsg];
                 setChatHistory(updatedChat);
                 setUserInput("");
                 setIsTextLoading(true);
                 setError(null);
 
+                const hasImage = !!generatedImage;
+                const modelAcceptsImageInput = !selectedImageModel.includes('imagen');
+
                 try {
-                    const newPromptText = await callGeminiText(updatedChat, currentPrompt, 'generate');
-                    setIsTextLoading(false);
-                    await executeGeneration(newPromptText, updatedChat);
+                    let promptToSend;
+                    // When editing an existing image with an img2img-capable model (e.g. Gemini/nano):
+                    // Send ONLY the user's modification with the image — the model understands edits.
+                    // For Imagen (no image input): must rewrite full prompt since we can't send the image.
+                    if (hasImage && modelAcceptsImageInput) {
+                        promptToSend = modificationText;
+                        setIsTextLoading(false);
+                    } else {
+                        promptToSend = await callGeminiText(updatedChat, currentPrompt, 'generate');
+                        promptToSend = applyStyleToPrompt(promptToSend, visualStyle);
+                        setIsTextLoading(false);
+                    }
+                    
+                    await executeGeneration(promptToSend, updatedChat);
                 } catch (err) {
                     setError(err.message);
                     setIsTextLoading(false);
@@ -516,7 +712,6 @@
                 executeGeneration(safePrompt, updatedChat);
             };
 
-            // --- THE NEW RANDOMIZER (Structured Data) ---
             const generateNewBase = async () => {
                 setError(null);
                 
@@ -526,47 +721,40 @@
                     return;
                 }
 
+                // Rolling starts FRESH - Clear current image and style caches so it doesn't do Img2Img
+                setGeneratedImage(null);
+                setGeneratedImagePhoto(null);
+                setGeneratedImage3d(null);
                 setChatHistory([{ role: 'system', text: 'Rolling new character attributes from database...', type: 'text' }]);
                 setIsTextLoading(true);
-                setGeneratedImage(null);
                 setCurrentPrompt("");
 
                 // 1. Roll Random Attributes
                 const rolledProfile = rollCharacter();
-                
-                // 2. Format as String
                 const profileString = formatProfileToString(rolledProfile);
 
-                // 3. Context Aware Construction
+                // 2. Context Aware Construction
                 let seedInstruction = "";
                 let contextMsg = "";
                 
                 if (userInput.trim()) {
-                    // User provided specific guidance
                     contextMsg = `Rolled with guidance: "${userInput}"`;
                     seedInstruction = `
                         Create a unique human male character description.
-                        
                         **PRIMARY DIRECTIVE:** The user specifically requested: "${userInput}".
                         You MUST respect this request above all else.
-                        
                         **SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:
                         ${profileString}
-                        
                         If the user request conflicts with a rolled trait, IGNORE the rolled trait and OBEY the user.
-                        
                         Ensure he is STRICTLY HUMAN. Translate explicit metrics (e.g. "Heavy shower") into safe visual descriptions (e.g. "Confident fit").
                         Use the full structured output format.
                     `;
                     setUserInput("");
                 } else {
-                    // Pure Random Roll
                     contextMsg = "Random Roll: Database Attributes";
                     seedInstruction = `
                         Create a unique human male character description based strictly on these rolled attributes:
-                        
                         ${profileString}
-                        
                         Combine these elements into a cohesive, physically desirable character. 
                         Translate explicit metrics into safe visual equivalents.
                         Use the full structured output format.
@@ -574,12 +762,65 @@
                 }
 
                 try {
-                    const newPromptText = await callGeminiText([{ role: 'user', text: seedInstruction }], null, 'generate');
+                    let newPromptText = await callGeminiText([{ role: 'user', text: seedInstruction }], null, 'generate');
+                    newPromptText = applyStyleToPrompt(newPromptText, visualStyle);
                     setIsTextLoading(false);
                     await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }]);
                 } catch (err) {
                     setError(err.message);
                     setIsTextLoading(false);
+                }
+            };
+
+            const handleStyleToggle = async () => {
+                const newStyle = visualStyle === 'photo' ? '3d' : 'photo';
+                setVisualStyle(newStyle);
+                localStorage.setItem('adonis_visual_style', newStyle);
+
+                if (!generatedImage) return;
+
+                const alternateCached = newStyle === '3d' ? generatedImage3d : generatedImagePhoto;
+                if (alternateCached) {
+                    setGeneratedImage(alternateCached);
+                    setGenerationHistory(prev => {
+                        if (prev.length === 0) return prev;
+                        const updated = [...prev];
+                        updated[0] = { ...updated[0], image: alternateCached, visualStyle: newStyle };
+                        return updated;
+                    });
+                    return;
+                }
+
+                setError(null);
+                const promptToSend = applyStyleToPrompt(currentPrompt, newStyle);
+                const historySnapshot = [...chatHistory, { role: 'user', text: `Regenerate in ${newStyle === '3d' ? '3D animated' : 'photo realistic'} style`, type: 'text' }];
+
+                try {
+                    const newImageUrl = await executeGeneration(promptToSend, historySnapshot, {
+                        skipAddToHistory: false,
+                        targetStyle: newStyle,
+                        forceTextOnly: true
+                    });
+                    if (newImageUrl) {
+                        setGenerationHistory(prev => {
+                            if (prev.length < 2) return prev;
+                            const updated = [...prev];
+                            const prevItem = updated[1];
+                            updated[1] = {
+                                ...prevItem,
+                                imagePhoto: newStyle === 'photo' ? newImageUrl : (prevItem.imagePhoto ?? (prevItem.visualStyle === 'photo' ? prevItem.image : null)),
+                                image3d: newStyle === '3d' ? newImageUrl : (prevItem.image3d ?? (prevItem.visualStyle === '3d' ? prevItem.image : null))
+                            };
+                            return updated;
+                        });
+                    } else {
+                        setVisualStyle(visualStyle);
+                        localStorage.setItem('adonis_visual_style', visualStyle);
+                    }
+                } catch (err) {
+                    setError(err.message);
+                    setVisualStyle(visualStyle);
+                    localStorage.setItem('adonis_visual_style', visualStyle);
                 }
             };
 
@@ -591,7 +832,11 @@
                     <div className="flex-none p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/90 z-20">
                         <div className="flex items-center gap-3">
                             <Sparkles className="w-5 h-5 text-emerald-400" />
-                            <h1 className="font-bold text-lg tracking-wide hidden sm:block">Adonis Engine</h1>
+                            <h1 className="font-bold text-lg tracking-wide hidden sm:block">Adonis Engine <span className="text-slate-500 font-normal text-sm">v{APP_VERSION}</span></h1>
+                            <div className="flex items-center gap-1 bg-slate-800 rounded-full p-0.5" role="group" aria-label="Visual style">
+                                <button onClick={() => { if (visualStyle !== 'photo') handleStyleToggle(); }} disabled={isImageLoading || isTextLoading || isSanitizing} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${visualStyle === 'photo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>Photo</button>
+                                <button onClick={() => { if (visualStyle !== '3d') handleStyleToggle(); }} disabled={isImageLoading || isTextLoading || isSanitizing} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${visualStyle === '3d' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>3D</button>
+                            </div>
                             <button onClick={() => setShowHistory(!showHistory)} className={`p-2 rounded-full transition-colors flex items-center gap-2 ${showHistory ? 'bg-emerald-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
                                 <History className="w-5 h-5" />
                                 <span className="text-xs font-semibold hidden sm:block">History</span>
@@ -673,7 +918,7 @@
                                     generationHistory.map((item) => (
                                         <div key={item.id} onClick={() => restoreHistoryItem(item)} className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-emerald-500 cursor-pointer transition-all group">
                                             <div className="aspect-square w-full relative bg-slate-950">
-                                                <img src={item.image} alt="Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                <img src={(visualStyle === 'photo' && item.imagePhoto) || (visualStyle === '3d' && item.image3d) || item.image} alt="Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                                                     <p className="text-xs text-slate-300 font-mono">{item.timestamp}</p>
                                                 </div>
@@ -698,10 +943,18 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute top-4 left-4 z-10">
+                                    <div className="absolute top-4 left-4 z-10 flex gap-2">
                                         <button onClick={downloadImage} className="bg-black/50 hover:bg-black/70 backdrop-blur text-white p-2 rounded-lg border border-white/10 shadow-lg" title="Download Image">
                                             <Download className="w-4 h-4" />
                                         </button>
+                                        <button onClick={() => setGeneratedImage(null)} className="bg-black/50 hover:bg-red-500/70 backdrop-blur text-white p-2 rounded-lg border border-white/10 shadow-lg" title="Clear Image (Restart Gen)">
+                                            <Eraser className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                                        <span className="bg-black/50 backdrop-blur text-slate-300 text-[10px] px-2 py-1 rounded-full border border-white/10">
+                                            {generatedImage ? "Editing Enabled" : "Ready for New Image"}
+                                        </span>
                                     </div>
                                 </div>
                             ) : (
@@ -786,7 +1039,7 @@
                         </div>
                         <div className="p-4 bg-slate-800 border-t border-slate-700">
                             <form onSubmit={handleSendMessage} className="flex gap-2">
-                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder="Type details (e.g., 'hairy biker') then click Roll or Send" className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500 transition-all shadow-inner text-sm" disabled={isTextLoading || isImageLoading || isSanitizing} />
+                                <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={generatedImage ? "Describe modification (e.g., 'Make his hair silver')" : "Type details (e.g., 'hairy biker') then click Roll"} className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500 transition-all shadow-inner text-sm" disabled={isTextLoading || isImageLoading || isSanitizing} />
                                 <button type="submit" disabled={isTextLoading || isImageLoading || isSanitizing || !userInput.trim()} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 rounded-lg flex items-center justify-center shadow-lg"><Send className="w-5 h-5" /></button>
                             </form>
                         </div>

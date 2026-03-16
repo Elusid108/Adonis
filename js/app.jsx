@@ -633,7 +633,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 setRoleplayUiChat(prev => [...prev, { id: newMsgId, role: 'model', text: blockText || (picDesc ? "*[Sending a photo...]*" : "") }]);
                 if (picDesc) {
                     try {
-                        const picUrl = await callImageAPI(picDesc);
+                        const styledPicDesc = applyStyleToPrompt(picDesc, visualStyle, STYLE_SECTIONS);
+                        const picUrl = await callImageAPI(styledPicDesc);
                         setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, image: picUrl, text: blockText || "*[Sent a photo]*" } : msg));
                     } catch (imgErr) {
                         setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, text: blockText + `\n*(Failed to send photo: ${imgErr.message})*` } : msg));

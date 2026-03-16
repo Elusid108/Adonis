@@ -59,7 +59,7 @@ const AdonisEngineApp = ({ appData }) => {
     const [showHistory, setShowHistory] = useState(false);
     const [showDossier, setShowDossier] = useState(false);
     const [activeMainTab, setActiveMainTab] = useState('visualizer');
-    const [isFullScreen, setIsFullScreen] = useState(false);
+    const [fullScreenImageUrl, setFullScreenImageUrl] = useState(null);
     const [error, setError] = useState(null);
 
     const [availableTextModels, setAvailableTextModels] = useState(CANVAS_TEXT_MODELS);
@@ -369,9 +369,10 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
     };
 
     const downloadImage = () => {
-        if (!generatedImage) return;
+        const imgSrc = fullScreenImageUrl || generatedImage;
+        if (!imgSrc) return;
         const link = document.createElement('a');
-        link.href = generatedImage;
+        link.href = imgSrc;
         link.download = `adonis-${personaProfile?.core_identity?.first_name || 'engine'}-${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
@@ -463,6 +464,12 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 promptToSend = applyStyleToPrompt(promptToSend, visualStyle, STYLE_SECTIONS);
                 setIsVisTextLoading(false);
             }
+            if (personaProfile) {
+                const baseRp = generateRoleplayPrompt(personaProfile);
+                const visualOverride = `\n\n[VISUAL APPEARANCE - ABSOLUTE OVERRIDE]\nYour physical appearance is strictly defined by the following visual description. If any of your base profile traits conflict with this visual description, the visual description completely overrides them.\n\n${promptToSend}`;
+                setSystemPrompt(baseRp + visualOverride);
+            }
+
             await executeGeneration(promptToSend, updatedChat);
         } catch (err) {
             setError(err.message);
@@ -540,8 +547,6 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 
         const profile = rollCharacter();
         setPersonaProfile(profile);
-        const rpSysPrompt = generateRoleplayPrompt(profile);
-        setSystemPrompt(rpSysPrompt);
 
         setRoleplayApiHistory([]);
         setRoleplayUiChat([{
@@ -571,6 +576,11 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
         try {
             let newPromptText = await callTextAPI(payload);
             newPromptText = applyStyleToPrompt(newPromptText, visualStyle, STYLE_SECTIONS);
+
+            const rpSysPrompt = generateRoleplayPrompt(profile);
+            const visualOverride = `\n\n[VISUAL APPEARANCE - ABSOLUTE OVERRIDE]\nYour physical appearance is strictly defined by the following visual description. If any of your base profile traits conflict with this visual description, the visual description completely overrides them.\n\n${newPromptText}`;
+            setSystemPrompt(rpSysPrompt + visualOverride);
+
             setIsVisTextLoading(false);
             await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }]);
         } catch (err) {
@@ -888,7 +898,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                     <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
                         {generatedImage ? (
                             <div className="relative group h-full w-full flex items-center justify-center">
-                                <div className="relative max-h-full max-w-full cursor-zoom-in shadow-2xl rounded-xl overflow-hidden border border-slate-800 bg-slate-900 transition-transform active:scale-[0.99]" onClick={() => setIsFullScreen(true)}>
+                                <div className="relative max-h-full max-w-full cursor-zoom-in shadow-2xl rounded-xl overflow-hidden border border-slate-800 bg-slate-900 transition-transform active:scale-[0.99]" onClick={() => setFullScreenImageUrl(generatedImage)}>
                                     <img src={generatedImage} alt="Generated" className="max-h-full max-w-full object-contain" />
                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
                                         <div className="bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Full Screen</div>
@@ -1036,7 +1046,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                         </div>
                                                     )}
                                                     <div className={`max-w-[80%] md:max-w-[70%] text-[15px] leading-relaxed shadow-sm flex flex-col overflow-hidden ${isUser ? 'bg-purple-600 text-white rounded-2xl rounded-br-sm' : 'bg-slate-800 text-slate-200 rounded-2xl rounded-bl-sm border border-slate-700'}`}>
-                                                        {msg.image && <img src={msg.image} alt="Attached" className={`w-full h-auto object-cover max-h-64 ${msg.text ? 'border-b border-black/20' : ''}`} />}
+                                                        {msg.image && <img src={msg.image} alt="Attached" className={`w-full h-auto object-cover max-h-64 cursor-zoom-in hover:opacity-90 transition-opacity ${msg.text ? 'border-b border-black/20' : ''}`} onClick={() => setFullScreenImageUrl(msg.image)} />}
                                                         {msg.text && <div className="px-4 py-2.5 whitespace-pre-wrap">{msg.text}</div>}
                                                     </div>
                                                 </div>
@@ -1081,14 +1091,14 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             </div>
 
             {/* Full Screen Modal */}
-            {isFullScreen && generatedImage && (
+            {fullScreenImageUrl && (
                 <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col animate-in fade-in duration-200">
                     <div className="absolute top-4 right-4 flex gap-4 z-50">
                         <button onClick={downloadImage} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md"><Download className="w-6 h-6" /></button>
-                        <button onClick={() => setIsFullScreen(false)} className="bg-white/10 hover:bg-red-500/80 text-white p-3 rounded-full backdrop-blur-md"><X className="w-6 h-6" /></button>
+                        <button onClick={() => setFullScreenImageUrl(null)} className="bg-white/10 hover:bg-red-500/80 text-white p-3 rounded-full backdrop-blur-md"><X className="w-6 h-6" /></button>
                     </div>
-                    <div className="flex-1 p-4 flex items-center justify-center overflow-hidden" onClick={() => setIsFullScreen(false)}>
-                        <img src={generatedImage} alt="Full Screen" className="max-w-full max-h-full object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+                    <div className="flex-1 p-4 flex items-center justify-center overflow-hidden" onClick={() => setFullScreenImageUrl(null)}>
+                        <img src={fullScreenImageUrl} alt="Full Screen" className="max-w-full max-h-full object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
                     </div>
                 </div>
             )}

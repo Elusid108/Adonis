@@ -695,7 +695,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             <div className="flex-none p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/90 z-30 shadow-md">
                 <div className="flex items-center gap-3">
                     <Sparkles className="w-5 h-5 text-indigo-400" />
-                    <h1 className="font-bold text-lg tracking-wide hidden sm:block">Adonis Engine <span className="font-normal text-slate-500">| Studio</span></h1>
+                    <h1 className="font-bold text-lg tracking-wide hidden sm:block">Adonis Engine <span className="font-normal text-slate-500">| Studio</span> <span className="text-xs font-normal text-slate-600 ml-1">v{APP_VERSION}</span></h1>
                     <div className="flex items-center gap-1 bg-slate-800 rounded-full p-0.5" role="group" aria-label="Visual style">
                         <button onClick={() => { if (visualStyle !== 'photo') handleStyleToggle(); }} disabled={isVisImageLoading || isVisTextLoading || isVisSanitizing} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${visualStyle === 'photo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>Photo</button>
                         <button onClick={() => { if (visualStyle !== '3d') handleStyleToggle(); }} disabled={isVisImageLoading || isVisTextLoading || isVisSanitizing} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${visualStyle === '3d' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>3D</button>

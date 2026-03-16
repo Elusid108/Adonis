@@ -1,0 +1,148 @@
+{
+  "physical_and_aesthetic": {
+    "body_type": ["Lean & Athletic", "Bulky Muscle/Bodybuilder", "Dad Bod/Soft & Strong", "Tall & Lanky", "Stocky/Lumberjack", "Slim/Twink"],
+    "style_vibe": ["Streetwear/Hypebeast", "Goth/Alt/Punk", "Preppy/Old Money", "Athleisure/Gym Rat", "Messy/Unkempt", "Tailored Suits/Corporate"],
+    "grooming_habit": ["Immaculate (Skincare routine, signature cologne)", "Rugged (Stubble, 3-in-1 body wash)", "Over-groomed (Too much hair gel/cologne)", "Natural/Earthy (Smells like pine and sweat)"]
+  },
+  "physique_macro": {
+    "height": ["Short (5'4\" - 5'7\")", "Average (5'8\" - 5'10\")", "Tall (5'11\" - 6'2\")", "Towering (6'3\" - 6'6\")", "Giant (6'7\"+)"],
+    "body_composition": ["Ectomorph (Lean/Lanky)", "Mesomorph (Classic V-Shape)", "Endomorph (Stocky/Solid)", "Dad Bod (Soft torso, strong limbs)"],
+    "muscle_definition": [
+      "Swimmer's build (Lean/Defined)", "Athletic (Functional strength)", "Bodybuilder (Aesthetic/Sculpted)",
+      "Bulk (Muscle under soft layer)", "Powerlifter (Thick/Strong)", "Laborer (Wiry strength)",
+      "Natural/Soft", "Shredded (Paper-thin skin, hyper-striated)",
+      "Chiseled Marble (Deeply etched anatomical muscle separation)",
+      "Mass Monster (Extreme hypertrophy, bulging muscles)",
+      "Greek God Aesthetic (Perfectly symmetrical, classic proportions)",
+      "Brawny / Beefy (Thick dense muscle with a hearty layer of bulk)",
+      "Hulking Brawler (Massive traps, thick neck, imposing frame)",
+      "Otter Mode (Extremely low body fat, sleek, lithe swimmer's core)",
+      "Fighter / MMA Build (Wiry, explosive, highly defined core and shoulders)",
+      "Sleeper Build (Looks average in clothes, surprisingly muscular bare)",
+      "Overblown Comic-Book Proportions (Hyper-exaggerated peaks and valleys)",
+      "Gymnast (Dense, compact, highly defined core)"
+    ],
+    "shoulder_to_waist_ratio": ["Rectangular", "V-Taper", "Broad shoulders", "Pear", "Extreme Dorito-Taper (Exaggerated V)"],
+    "hands_and_feet": ["Average", "Large / Heavy-set", "Long fingers", "Thick/Scarred Hands", "Prominent Veins", "Meaty / Brawny Paws"]
+  },
+  "physique_micro": {
+    "facial_hair_style": [
+      "Clean Shaven", "Heavy Stubble", "Designer Stubble", "Goatee", "Anchor",
+      "Full Beard (Groomed)", "Full Beard (Natural)", "Mutton Chops",
+      "Mustache (Chevron)", "Mustache (Handlebar)", "Patchy",
+      "Lumberjack Beard", "5 O'clock Shadow", "Soul Patch", "Faded Beard"
+    ],
+    "body_hair_density": [
+      "Smooth / Shaved", "Natural / Light", "Treasure Trail only",
+      "Hairy Chest / Stomach", "Moderate Body Hair (All over)",
+      "Extremely Dense Body Hair (Full Coverage)", "Back hair present",
+      "Profuse Masculine Body Hair", "Thick Carpet of Chest Hair",
+      "Dense Forest of Torso Hair (Human)", "Heavy Lumberjack-Level Body Hair",
+      "Abundant Coarse Body Hair", "Thickly Forested Chest and Abdomen",
+      "Full-Body Rug of Masculine Hair", "Extremely Hairy (Anatomically Human Male)",
+      "Overgrown Natural Body Hair"
+    ],
+    "genital_metrics": {
+      "flaccid_hang": ["Compact", "Average", "Significant"],
+      "testicular_size": ["Tight/High", "Average", "Low"]
+    },
+    "vascularity": [
+      "Hidden", "Forearms only", "Biceps and Forearms",
+      "Hands and Forearms", "High Definition Surface Veins",
+      "Prominent Vascularity", "Full Body Vascularity (Shredded)"
+    ]
+  },
+  "facial_features": {
+    "jawline_and_chin": [
+      "Sharp / Chiseled (Glass-cutting jaw)", "Heavy / Square (Action hero)",
+      "Soft / Rounded", "Prominent Cleft / Dimpled Chin",
+      "Angular Diamond Shape", "Broad Bull-Neck Jaw", "Tapered V-Shape"
+    ],
+    "eye_shape_and_gaze": [
+      "Heavy-Lidded (Smoldering bedroom eyes)", "Deep-Set and Piercing",
+      "Hooded and Mysterious", "Wide and Warm (Puppy dog eyes)",
+      "Narrowed (Intense glare)", "Playful / Squinting Smile",
+      "Heterochromia (Mismatched colors)"
+    ],
+    "nose_structure": [
+      "Strong Roman / Aquiline (Prominent bridge)", "Broken / Boxer's Nose (Rugged)",
+      "Broad / Thick", "Straight and Elegant", "Upturned / Button",
+      "Aristocratic / Regal"
+    ]
+  },
+  "style_and_scent": {
+    "wardrobe_aesthetic": [
+      "Suit & Tie", "Blue Collar", "Gym Rat", "Streetwear", "Tactical",
+      "Rocker", "Minimalist", "Country", "Uniformed", "Casual / Weekend (Shorts/Tee)",
+      "Black Tie (Tuxedo)", "Preppy (Ivy League)", "Athleisure",
+      "Lumberjack (Flannels & Boots)", "Biker (Leather & Denim)",
+      "Techwear (Cyberpunk)", "Bohemian (Festival/Artisan)", "Goth / Alternative",
+      "Skater / Surf", "High Fashion (Avant-Garde)", "Vintage Dapper (1920s-1950s)",
+      "Academic (Tweed & Glasses)", "Loungewear (Silk Robes)",
+      "Swimwear (Boardshorts/Briefs)", "Clubwear (Mesh/Straps/Harness)",
+      "Hipster (Thrifted/Indie)", "Idol (Elaborate Stage Outfit)",
+      "Y2K Nostalgia", "Sensual / Bedroom (Unbuttoned/Bare)"
+    ]
+  },
+  "psychology_archetype": {
+    "dominant_vibe": [
+      "The Stoic Protector", "The Friendly/Warm", "The Rebellious",
+      "The Stern Authority", "The Intellectual", "The Charmer",
+      "The Resilient", "The Everyman",
+      "The Grumpy Softie (Tough exterior, heart of gold)",
+      "The Golden Retriever (Endlessly enthusiastic)",
+      "The Brooding Loner (Quiet, observant, intense)",
+      "The High-Powered Executive (Ruthless but generous)",
+      "The Gentle Giant (Intimidating size, soft demeanor)",
+      "The Cocky Jock (Arrogant but playfully charming)",
+      "The Haunted Veteran (Carrying heavy baggage, fiercely loyal)",
+      "The Dangerous Rogue (Morally grey, seductive)",
+      "The Eccentric Creative (Passionate, unpredictable, hyper-focused)"
+    ],
+    "daddy_issues_vector": [
+      "Nurturing", "Strict/Authoritative", "Absent/Distant",
+      "Generous/Provider", "Mentor", "Older/Experienced",
+      "Spoiling Sugar Daddy (Buys affection)",
+      "Demanding Perfectionist (Hard to please, highly rewarding)",
+      "Overprotective Guardian (Possessive and watchful)",
+      "The Fixer (Needs to solve all your problems)",
+      "The Emotionally Unavailable Boss (Professional boundary issues)",
+      "The Devoted Family Man (Craves domesticity and control)"
+    ],
+    "emotional_availability": [
+      "Open book", "Guarded but warm", "Cool/Reserved", "Volatile",
+      "Analytical", "Emotionally Constipated (Shows love entirely through acts of service)",
+      "Fiercely Protective but Silent (Actions speak louder than words)",
+      "Overwhelmingly Affectionate (Touch-starved and clingy)",
+      "Trauma-Guarded (Needs immense patience to break down walls)",
+      "Performatively Confident (Hiding deep insecurities with bravado)",
+      "Hypnotically Focused (Laser-focused on their partner's emotional state)"
+    ]
+  },
+  "poses_and_posture": {
+    "attitude_and_stance": [
+      "Relaxed Lounging (Sprawled out)",
+      "Alpha / Dominant Stance (Wide base, chest out)",
+      "Casual Lean (Against a wall or doorframe)",
+      "Hands Deep in Pockets",
+      "Dynamic Action (Mid-movement)",
+      "Adjusting Tie / Cuffs (Dapper)",
+      "Over-The-Shoulder Glance",
+      "Flexing / Posing (Checking out gains)",
+      "Brooding / Head Down (Looking up through brows)",
+      "Stretching (Arms overhead, shirt lifting)"
+    ]
+  },
+  "environment_and_lighting": {
+    "cinematic_lighting": [
+      "Moody Chiaroscuro (Harsh shadows, high contrast)",
+      "Cinematic Rim Lighting (Glowing outline)",
+      "Soft Studio Portrait (Even, flattering light)",
+      "Harsh Overhead Gym Fluorescents (Emphasizes definition)",
+      "Golden Hour (Warm, sun-drenched)",
+      "Neon Cyberpunk Glow (Pink, blue, and purple hues)",
+      "Under-lit (Sinister or imposing shadows)",
+      "Dappled Sunlight (Through blinds or trees)"
+    ]
+  }
+}

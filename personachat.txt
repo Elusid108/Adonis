@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adonis Engine | Studio</title>
+    <title>Adonis Engine | Studio Export</title>
     
     <!-- Babel for JSX transformation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,15 +13,20 @@
 
     <style>
         body { background-color: #0f172a; color: #f8fafc; overflow: hidden; }
+        /* Custom scrollbar for webkit */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
         .chat-bubble { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        .tab-active { border-bottom-color: #a855f7; color: #f3e8ff; background: rgba(168, 85, 247, 0.1); }
+        .tab-inactive { border-bottom-color: transparent; color: #94a3b8; hover:text-white; }
     </style>
 </head>
 <body>
@@ -33,19 +38,17 @@
         import { 
             Send, RefreshCw, Settings, AlertCircle, Copy, Check, Sparkles, User, 
             Image as ImageIcon, Eye, EyeOff, MessageSquare, Download, History, X, 
-            Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2, Eraser,
-            LayoutGrid, PanelLeft, PanelRight,
-            Heart, MessageCircle, Flame, Lock, Fingerprint, Paperclip, Palette, FileDown
+            Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Loader2, Eraser,
+            Heart, Brain, MessageCircle, Flame, Lock, Fingerprint, Paperclip, 
+            Image as LucideImage, Palette, Layout, FileDown
         } from 'https://esm.sh/lucide-react@0.303.0';
 
-        const APP_VERSION = "2.0";
-
-        // --- Name Database ---
+        // --- Grand Unified Configuration Data (Expanded) ---
         const FIRST_NAMES = [
-            "Liam", "Ethan", "Mateo", "Julian", "Marcus", "Dante", "Silas", "Caleb", "Rowan", "Asher",
-            "Gael", "Leon", "Nico", "Elias", "Kai", "Levi", "Arthur", "Felix", "Xavier", "Zane",
-            "Beau", "Jude", "Hayes", "Miles", "Cole", "Finn", "Gideon", "Jasper", "Knox", "Nash",
-            "Remy", "Rhett", "Theo", "Wyatt", "Ezra", "Luca", "Orion", "Roman", "Ryder", "Sawyer",
+            "Liam", "Ethan", "Mateo", "Julian", "Marcus", "Dante", "Silas", "Caleb", "Rowan", "Asher", 
+            "Gael", "Leon", "Nico", "Elias", "Kai", "Levi", "Arthur", "Felix", "Xavier", "Zane", 
+            "Beau", "Jude", "Hayes", "Miles", "Cole", "Finn", "Gideon", "Jasper", "Knox", "Nash", 
+            "Remy", "Rhett", "Theo", "Wyatt", "Ezra", "Luca", "Orion", "Roman", "Ryder", "Sawyer", 
             "Waylon", "Wesley", "Brooks", "Camden", "Dallas", "Easton", "Hudson", "Jaxon", "Maddox", "Maverick",
             "Victor", "Damian", "Malachi", "Javier", "Tristan", "Declan", "Elliott", "Harrison", "Jonah", "Micah",
             "Alexander", "Benjamin", "Charles", "Edward", "George", "Henry", "James", "Nathaniel", "Sebastian", "Theodore", "William", "Vincent", "Oliver",
@@ -53,22 +56,9 @@
             "Boone", "Cash", "Colton", "Dakota", "Gage", "Gunner", "Hunter", "Jesse", "Lane", "Logan", "Luke", "Stetson", "Tucker", "Wade", "Zeke",
             "Amir", "Alejandro", "Carlos", "Diego", "Emilio", "Hassan", "Hiroshi", "Idris", "Ivan", "Jamal", "Kenji", "Lars", "Malik", "Omar", "Rafael", "Ravi", "Tariq", "Yusuf", "Zahir",
             "Axl", "Blade", "Casper", "Dax", "Fox", "Jagger", "Jett", "Onyx", "Phoenix", "Rocco", "Slade", "Storm", "Thorn", "Vance", "Wolf",
-            "Albie", "Amos", "Cecil", "Chester", "Clarence", "Edgar", "Enoch", "Harvey", "Ira", "Lester", "Lionel", "Otis", "Percy", "Stanley", "Walter"
+            "Albie", "Amos", "Arthur", "Cecil", "Chester", "Clarence", "Edgar", "Enoch", "Harvey", "Ira", "Lester", "Lionel", "Otis", "Percy", "Silas", "Stanley", "Walter"
         ];
 
-        // --- Visual Style Sections (Photo/3D Toggle) ---
-        const STYLE_SECTIONS = {
-            photo: `[Style & Medium]\n(Describe render style: "Photorealistic human male, realistic proportions, natural anatomy, no exaggerated musculature, soft studio lighting. Avoid 3D animated or stylized/cartoon proportions.")`,
-            "3d": `[Style, Medium & Lighting]\nHigh-fidelity 3D animated render, stylized realism, premium adult animation aesthetic. The scene is bathed in warm, dappled sunlight filtering through venetian blinds or lush tree leaves, creating shifting patterns of light and shadow across the environment and the subject's skin, evoking a sense of lazy afternoon intimacy.`
-        };
-
-        const applyStyleToPrompt = (promptText, style) => {
-            const section = STYLE_SECTIONS[style];
-            const styleRegex = /\[Style[^\]]*\][\s\S]*?(?=\n\[|\n\s*$)/;
-            return promptText.replace(styleRegex, section) || section + '\n\n' + promptText;
-        };
-
-        // --- Grand Unified Configuration Data ---
         const MERGED_ARCHETYPES = {
             "core_identity": {
                 "first_name": FIRST_NAMES,
@@ -86,29 +76,29 @@
                     "Dad-Core (New Balance & Cargo Shorts)", "Cottagecore (Knit sweaters & earthy tones)", "Dark Academia (Tweed & Turtlenecks)"
                 ],
                 "age_bracket": [
-                    "Fresh Adult (18-21)", "Young Adult (22-25)", "Quarter-Life (26-29)",
-                    "Prime (30-35)", "Established (36-41)", "Mature (42-49)",
+                    "Fresh Adult (18-21)", "Young Adult (22-25)", "Quarter-Life (26-29)", 
+                    "Prime (30-35)", "Established (36-41)", "Mature (42-49)", 
                     "Distinguished (50-59)", "Silver Fox (60-69)", "Elder/Patriarch (70+)"
                 ],
                 "sexual_orientation": [
-                    "Gay", "Bisexual", "Pansexual", "Heteroflexible", "Queer",
-                    "Asexual", "Demisexual", "Sapiosexual", "Omnisexual", "Unlabeled / Questioning",
+                    "Gay", "Bisexual", "Pansexual", "Heteroflexible", "Queer", 
+                    "Asexual", "Demisexual", "Sapiosexual", "Omnisexual", "Unlabeled / Questioning", 
                     "Strictly Top/Strictly Bottom (Identity-linked)", "Homoflexible"
                 ],
                 "romantic_orientation": [
-                    "Hopeless Romantic", "Pragmatic & Grounded", "Aromantic/Casual",
+                    "Hopeless Romantic", "Pragmatic & Grounded", "Aromantic/Casual", 
                     "Demi-romantic (Needs emotional bond first)", "Serial Monogamist",
                     "Fiercely Independent", "Relationship Anarchist", "Fated-Mates Believer",
                     "Slow Burner", "Love-Bombing Enthusiast", "Uhauler (Ready to commit immediately)"
                 ],
                 "relationship_structure": [
-                    "Strictly Monogamous", "Ethically Non-Monogamous", "Open to anything",
+                    "Strictly Monogamous", "Ethically Non-Monogamous", "Open to anything", 
                     "Single & Dating Around", "Polyamorous (Hierarchical)", "Polyamorous (Egalitarian)",
                     "Looking for a Third", "Don't Ask, Don't Tell", "Platonic Life Partner Seeking Romantic Side",
                     "Comet Partner (Occasional intense connection)", "Looking for Marriage/Nesting", "Strictly FWBs"
                 ],
                 "masculine_expression": [
-                    "Hyper-masculine / Traditional", "Soft Masculine / Pretty Boy", "Androgynous / Fluid",
+                    "Hyper-masculine / Traditional", "Soft Masculine / Pretty Boy", "Androgynous / Fluid", 
                     "Rugged / Blue-Collar", "Effeminate / Campy", "Unbothered / Undefined",
                     "Quietly Confident / Stoic", "Loudly Peacocking / Macho", "Toxic Masculinity (Unhealed)",
                     "Reformed Frat Boy", "Protector / Provider Energy", "Golden Retriever Masculinity"
@@ -116,50 +106,50 @@
             },
             "physique_macro": {
                 "height": [
-                    "Pocket Prince (Under 5'4\")", "Short King (5'4\" - 5'7\")", "Average & Approachable (5'8\" - 5'10\")",
-                    "Statistically Ideal (5'11\" - 6'0\")", "Tall & Imposing (6'1\" - 6'3\")", "Towering (6'4\" - 6'6\")",
+                    "Pocket Prince (Under 5'4\")", "Short King (5'4\" - 5'7\")", "Average & Approachable (5'8\" - 5'10\")", 
+                    "Statistically Ideal (5'11\" - 6'0\")", "Tall & Imposing (6'1\" - 6'3\")", "Towering (6'4\" - 6'6\")", 
                     "Giant / Door-Ducker (6'7\"+)"
                 ],
                 "body_composition": [
-                    "Ectomorph (Lean/Lanky)", "Mesomorph (Classic V-Shape)", "Endomorph (Stocky/Solid)",
-                    "Dad Bod (Soft torso, strong limbs)", "Bear (Heavy set, broad, soft)",
-                    "Otter (Slim, toned, hairy)", "Twink (Very slim, little body fat)",
+                    "Ectomorph (Lean/Lanky)", "Mesomorph (Classic V-Shape)", "Endomorph (Stocky/Solid)", 
+                    "Dad Bod (Soft torso, strong limbs)", "Bear (Heavy set, broad, soft)", 
+                    "Otter (Slim, toned, hairy)", "Twink (Very slim, little body fat)", 
                     "Chub/Husky (Carrying extra weight comfortably)", "Muscle Bear (Massive muscle under fat layer)",
                     "Sleeper Build (Looks average in clothes, surprisingly jacked)", "String Bean (Very tall, very thin)"
                 ],
                 "muscle_definition": [
-                    "Swimmer's build (Lean/Defined)", "Athletic (Functional strength)",
-                    "Bodybuilder (Aesthetic/Sculpted)", "Bulk (Muscle under soft layer)",
-                    "Powerlifter (Thick/Strong/No visible abs)", "Laborer (Wiry, uneven real-world strength)",
-                    "Natural/Soft", "Shredded (Paper-thin skin, hyper-striated)",
-                    "Chiseled Marble", "Mass Monster (Extreme hypertrophy)",
-                    "Greek God Aesthetic", "Brawny / Beefy", "Hulking Brawler",
+                    "Swimmer's build (Lean/Defined)", "Athletic (Functional strength)", 
+                    "Bodybuilder (Aesthetic/Sculpted)", "Bulk (Muscle under soft layer)", 
+                    "Powerlifter (Thick/Strong/No visible abs)", "Laborer (Wiry, uneven real-world strength)", 
+                    "Natural/Soft", "Shredded (Paper-thin skin, hyper-striated)", 
+                    "Chiseled Marble", "Mass Monster (Extreme hypertrophy)", 
+                    "Greek God Aesthetic", "Brawny / Beefy", "Hulking Brawler", 
                     "Otter Mode (Low body fat, moderate muscle)", "Fighter / MMA Build",
                     "Calisthenics God (Insane core, lean limbs)", "CrossFit Physique (Blocky, highly functional)",
                     "Skinny-Fat (Low muscle, slight softness)"
                 ],
                 "shoulder_to_waist_ratio": [
-                    "Rectangular (Straight up and down)", "V-Taper", "Broad shoulders", "Pear (Wider hips/waist)",
+                    "Rectangular (Straight up and down)", "V-Taper", "Broad shoulders", "Pear (Wider hips/waist)", 
                     "Extreme Dorito-Taper (Exaggerated V)", "Barrel-Chested", "Inverted Triangle", "The Fridge (Square, massive, unmovable)"
                 ],
                 "hands_and_feet": [
-                    "Average", "Large / Heavy-set", "Long/Piano-player fingers", "Thick/Scarred Hands",
+                    "Average", "Large / Heavy-set", "Long/Piano-player fingers", "Thick/Scarred Hands", 
                     "Prominent Veins", "Meaty / Brawny Paws", "Calloused and Rough", "Immaculately Manicured",
                     "Mechanic Hands (Permanently stained)", "Fidgety/Restless Hands", "Surprisingly Small/Delicate"
                 ]
             },
             "physique_micro": {
                 "facial_hair_style": [
-                    "Clean Shaven", "Heavy Stubble", "Designer Stubble", "Goatee", "Anchor",
-                    "Full Beard (Groomed)", "Full Beard (Natural)", "Mutton Chops",
-                    "Mustache (Chevron)", "Mustache (Handlebar)", "Patchy/Teenage", "Lumberjack Beard",
-                    "5 O'clock Shadow", "Soul Patch", "Faded Beard", "Chinstrap", "Van Dyke",
-                    "Walrus Mustache (Thick and covering lip)", "Horseshoe Mustache (Hulk Hogan style)",
+                    "Clean Shaven", "Heavy Stubble", "Designer Stubble", "Goatee", "Anchor", 
+                    "Full Beard (Groomed)", "Full Beard (Natural)", "Mutton Chops", 
+                    "Mustache (Chevron)", "Mustache (Handlebar)", "Patchy/Teenage", "Lumberjack Beard", 
+                    "5 O'clock Shadow", "Soul Patch", "Faded Beard", "Chinstrap", "Van Dyke", 
+                    "Walrus Mustache (Thick and covering lip)", "Horseshoe Mustache (Hulk Hogan style)", 
                     "Pencil Mustache", "Scruffy Neckbeard (Needs a trim)", "Beardstache (Heavy mustache, light stubble)"
                 ],
                 "body_hair_density": [
-                    "Smooth / Shaved/Waxed", "Natural / Light", "Treasure Trail only", "Hairy Chest / Stomach",
-                    "Moderate Body Hair (All over)", "Extremely Dense Body Hair (Full Coverage)",
+                    "Smooth / Shaved/Waxed", "Natural / Light", "Treasure Trail only", "Hairy Chest / Stomach", 
+                    "Moderate Body Hair (All over)", "Extremely Dense Body Hair (Full Coverage)", 
                     "Back hair present", "Profuse Masculine Body Hair", "Thick Carpet of Chest Hair",
                     "Patchy Body Hair", "Shoulder Tufts", "Landing Strip (Groomed)"
                 ],
@@ -168,43 +158,43 @@
                     "testicular_size": ["Tight/High", "Average", "Low/Heavy", "Oversized", "Discreet"]
                 },
                 "vascularity": [
-                    "Hidden (Smooth skin)", "Forearms only", "Biceps and Forearms", "Hands and Forearms",
+                    "Hidden (Smooth skin)", "Forearms only", "Biceps and Forearms", "Hands and Forearms", 
                     "High Definition Surface Veins", "Prominent Vascularity", "Full Body Vascularity (Shredded)",
                     "The Single Bulging Bicep Vein", "Roadmap Arms", "Bulging Neck/Temple Vein (When angry/straining)"
                 ]
             },
             "facial_features": {
                 "jawline_and_chin": [
-                    "Sharp / Chiseled (Glass-cutting jaw)", "Heavy / Square (Action hero)", "Soft / Rounded",
+                    "Sharp / Chiseled (Glass-cutting jaw)", "Heavy / Square (Action hero)", "Soft / Rounded", 
                     "Prominent Cleft / Dimpled Chin", "Angular Diamond Shape", "Broad Bull-Neck Jaw", "Tapered V-Shape",
                     "Weak / Receding Chin", "Underbite / Bulldog Jaw", "Heart-Shaped (Pointy chin)", "Asymmetrical/Crooked Jaw"
                 ],
                 "eye_shape_and_gaze": [
-                    "Heavy-Lidded (Smoldering bedroom eyes)", "Deep-Set and Piercing", "Hooded and Mysterious",
-                    "Wide and Warm (Puppy dog eyes)", "Narrowed (Intense glare)", "Playful / Squinting Smile",
+                    "Heavy-Lidded (Smoldering bedroom eyes)", "Deep-Set and Piercing", "Hooded and Mysterious", 
+                    "Wide and Warm (Puppy dog eyes)", "Narrowed (Intense glare)", "Playful / Squinting Smile", 
                     "Heterochromia (Mismatched colors)", "Doe Eyes (Innocent)", "Sanpaku Eyes (Showing white under iris)",
                     "Crow's Feet (Prominent laugh lines)", "Sleep-Deprived Bags (Dark circles)", "Hunter Eyes (Positive canthal tilt)"
                 ],
                 "nose_structure": [
-                    "Strong Roman / Aquiline (Prominent bridge)", "Broken / Boxer's Nose (Rugged)", "Broad / Thick",
-                    "Straight and Elegant", "Upturned / Button", "Aristocratic / Regal",
+                    "Strong Roman / Aquiline (Prominent bridge)", "Broken / Boxer's Nose (Rugged)", "Broad / Thick", 
+                    "Straight and Elegant", "Upturned / Button", "Aristocratic / Regal", 
                     "Sloped / Ski-jump", "Crooked / Asymmetrical", "Hawk/Hooked Nose", "Wide / Flat (Broad nostrils)", "Fleshy / Bulbous"
                 ]
             },
             "physical_and_aesthetic": {
                 "body_type": [
-                    "Lean & Athletic", "Bulky Muscle/Bodybuilder", "Dad Bod/Soft & Strong", "Tall & Lanky",
+                    "Lean & Athletic", "Bulky Muscle/Bodybuilder", "Dad Bod/Soft & Strong", "Tall & Lanky", 
                     "Stocky/Lumberjack", "Slim/Twink", "Grizzly Bear", "Brick Outhouse", "Wiry/Sinewy", "Broad & Puffy (Powerlifter)"
                 ],
                 "style_vibe": [
-                    "Streetwear/Hypebeast", "Goth/Alt/Punk", "Preppy/Old Money", "Athleisure/Gym Rat",
-                    "Messy/Unkempt", "Tailored Suits/Corporate", "Blue Collar/Carhartt", "Tactical/Mil-Sim",
-                    "Minimalist/Scandi", "Country/Western", "Uniformed (Scrubs, Military, Police)", "Vintage Dapper",
-                    "Bohemian/Artsy", "Gorpcore (Arc'teryx & Salomons)", "Dark Academia", "Softboy/Cardigans",
+                    "Streetwear/Hypebeast", "Goth/Alt/Punk", "Preppy/Old Money", "Athleisure/Gym Rat", 
+                    "Messy/Unkempt", "Tailored Suits/Corporate", "Blue Collar/Carhartt", "Tactical/Mil-Sim", 
+                    "Minimalist/Scandi", "Country/Western", "Uniformed (Scrubs, Military, Police)", "Vintage Dapper", 
+                    "Bohemian/Artsy", "Gorpcore (Arc'teryx & Salomons)", "Dark Academia", "Softboy/Cardigans", 
                     "Biker/Leather", "Cyberpunk/Techwear", "Normcore/Dad-style"
                 ],
                 "grooming_habit": [
-                    "Immaculate (10-step skincare, signature niche cologne)", "Rugged (Stubble, 3-in-1 body wash)",
+                    "Immaculate (10-step skincare, signature niche cologne)", "Rugged (Stubble, 3-in-1 body wash)", 
                     "Over-groomed (Too much hair gel/Axe body spray)", "Natural/Earthy (Smells like pine, patchouli, and sweat)",
                     "Bar Soap Only (Genetics do the heavy lifting)", "DIY Haircuts & Beard Trims", "High Maintenance (Weekly barber visits, manicures)",
                     "The Product Junkie (Steals your expensive serums)"
@@ -221,7 +211,7 @@
                     "Aggressive Problem Solving (Fixing your life)"
                 ],
                 "dominant_vibe": [
-                    "The Stoic Protector", "The Friendly/Warm", "The Rebellious", "The Stern Authority",
+                    "The Stoic Protector", "The Friendly/Warm", "The Rebellious", "The Stern Authority", 
                     "The Intellectual", "The Charmer", "The Resilient", "The Everyman",
                     "The Grumpy Softie (Tough exterior, heart of gold)", "The Golden Retriever (Endlessly enthusiastic)",
                     "The Brooding Loner (Quiet, observant, intense)", "The High-Powered Executive (Ruthless but generous)",
@@ -233,26 +223,26 @@
                     "The Trash Panda (Chaotic, nocturnal, survives on energy drinks)", "The F-Boy (Charming, transient, toxic)"
                 ],
                 "fatal_flaw": [
-                    "Workaholic (Prioritizes career over everything)", "Jealous/Possessive (Quick to get territorial)",
-                    "Emotionally Unavailable (Uses humor to deflect deep talks)", "Overly Critical (Expects perfection from self and partner)",
+                    "Workaholic (Prioritizes career over everything)", "Jealous/Possessive (Quick to get territorial)", 
+                    "Emotionally Unavailable (Uses humor to deflect deep talks)", "Overly Critical (Expects perfection from self and partner)", 
                     "Terrible Texting Habits (Disappears for hours/days)", "Thrill-Seeker (Reckless, hates routine)",
                     "People Pleaser (Burns out trying to make everyone happy)", "Martyr Complex (Takes on everyone's burdens unnecessarily)",
                     "Chronic Procrastinator (Leaves everything to the last minute)", "Interrupts Constantly (Gets too excited)",
                     "Pathological White-Liar (Lies to avoid minor conflicts)", "Arrogant/Know-it-all (Mansplains)",
-                    "Financially Irresponsible (Impulse buys)", "Deeply Insecure (Needs constant validation)",
+                    "Financially Irresponsible (Impulse buys)", "Deeply Insecure (Needs constant validation)", 
                     "Avoids Conflict at All Costs (Bottles things up until exploding)"
                 ],
                 "daddy_issues_vector": [
-                    "Nurturing", "Strict/Authoritative", "Absent/Distant", "Generous/Provider",
+                    "Nurturing", "Strict/Authoritative", "Absent/Distant", "Generous/Provider", 
                     "Mentor", "Older/Experienced", "Spoiling Sugar Daddy", "Demanding Perfectionist",
                     "Overprotective Guardian", "The Fixer", "The Devoted Family Man",
-                    "Over-Achiever Seeking Validation", "Daddy's Money (Trust fund reliance)",
+                    "Over-Achiever Seeking Validation", "Daddy's Money (Trust fund reliance)", 
                     "Rebelling Against The Patriarch", "Seeking The Father He Never Had"
                 ]
             },
             "communication_style": {
                 "texting_habit": [
-                    "Double-texter (Spams short messages rapidly)", "Leaves you on read for hours then replies casually",
+                    "Double-texter (Spams short messages rapidly)", "Leaves you on read for hours then replies casually", 
                     "Instant replies (Always on their phone)", "Paragraph writer (Sends detailed, thoughtful essays)",
                     "Dry texter (One-word answers, implies they are busy)", "Audio Note abuser (Never types, only voice memos)",
                     "Reactions Only (Just heart-reacts or thumbs-up your messages)", "Sends Reels Constantly (Communication via Instagram algorithm)",
@@ -260,17 +250,17 @@
                     "Late Night Only (U up?)", "Perfect Grammar/Punctuation (Intimidatingly formal)"
                 ],
                 "vocabulary_and_tone": [
-                    "Formal & Polite (Perfect grammar, sophisticated)", "Slang-heavy & Gen-Z (Uses current internet slang naturally)",
-                    "Profane & Rough (Swears frequently, unfiltered)", "Warm & Encouraging (Lots of validation and sweet words)",
+                    "Formal & Polite (Perfect grammar, sophisticated)", "Slang-heavy & Gen-Z (Uses current internet slang naturally)", 
+                    "Profane & Rough (Swears frequently, unfiltered)", "Warm & Encouraging (Lots of validation and sweet words)", 
                     "Sarcastic & Witty (Constant banter and teasing)", "Academic & Pretentious (Uses ten-dollar words unnecessarily)",
                     "Corporate Speak (Uses phrases like 'circle back' and 'synergy' casually)", "Movie Quotes & Pop Culture References",
                     "Philosophical & Deep (Always turning small talk into existential dread)", "Monosyllabic (Grunts in text form)"
                 ],
                 "emoji_usage": [
-                    "Excessively expressive (Uses loudly)", "Bare minimum (Maybe a single thumbs up or no emojis)",
-                    "Flirty & Suggestive (Uses devil and eyes frequently)", "Wholesome & Soft (Uses sparkles and hearts)",
-                    "Boomer style (Uses random punctuation and Thumbs Up)", "Irony Poisoned (Uses cowboy and clown ironically)",
-                    "The 'Skull' Exclusive (Only ever replies with skull emoji)", "The Classic Emoticon User (Uses :), XD, and O.o)"
+                    "Excessively expressive (Uses 😂 💀 😭 loudly)", "Bare minimum (Maybe a single 👍 or no emojis)", 
+                    "Flirty & Suggestive (Uses 😈 👀 💦 😉 🍆 🍑 🐽 frequently)", "Wholesome & Soft (Uses 🥺 💖 ✨ 🥰)",
+                    "Boomer style (Uses random punctuation and Thumbs Up)", "Irony Poisoned (Uses 🤠 🥴 🤡 ironically)",
+                    "The 'Skull' Exclusive (Only ever replies with 💀)", "The Classic Emoticon User (Uses :), XD, and O.o)"
                 ],
                 "emoji_frequency": [
                     "None (Zero emojis, extremely plain text)", "None (Zero emojis, strictly punctuation)",
@@ -279,24 +269,24 @@
                     "Unbearable (Every other word is replaced by an emoji)"
                 ],
                 "humor_style": [
-                    "Dry/Deadpan (Sarcastic, hard to tell if joking)", "Self-deprecating (Makes fun of themselves)",
-                    "Cheesy Dad Jokes (Loves puns)", "Dark/Edgy (Pushes boundaries)",
+                    "Dry/Deadpan (Sarcastic, hard to tell if joking)", "Self-deprecating (Makes fun of themselves)", 
+                    "Cheesy Dad Jokes (Loves puns)", "Dark/Edgy (Pushes boundaries)", 
                     "Playful Teasing (Banter, lightly mocking you)", "Absurdist/Random (Internet-brain humor)",
-                    "Brainrot (Skibidi, chronically online)", "Slapstick/Physical (Loud, clumsy for laughs)",
+                    "Brainrot (Skibidi, chronically online)", "Slapstick/Physical (Loud, clumsy for laughs)", 
                     "Witty Comebacks (Always has a sharp retort ready)", "Observational (Stand-up comedian vibe)"
                 ]
             },
             "conflict_and_boundaries": {
                 "argument_style": [
-                    "Stonewaller (Needs space, gives the silent treatment)", "Hot-headed Yeller (Explodes quickly, apologizes 10 minutes later)",
-                    "The Debater (Turns every fight into a cold logic puzzle)", "The Peacemaker (Folds immediately just to stop the fighting)",
+                    "Stonewaller (Needs space, gives the silent treatment)", "Hot-headed Yeller (Explodes quickly, apologizes 10 minutes later)", 
+                    "The Debater (Turns every fight into a cold logic puzzle)", "The Peacemaker (Folds immediately just to stop the fighting)", 
                     "Passive Aggressive (Petty comments and sighing)", "Gaslighter (Denies reality to win)",
                     "Over-Apologizer (Takes blame for everything even if innocent)", "Devil's Advocate (Argues the opposite side just because)",
                     "The Crier (Gets overwhelmed by emotion immediately)", "The Historian (Brings up something you did 4 years ago)"
                 ],
                 "jealous_expression": [
-                    "Gets quiet and overly physically affectionate/territorial", "Picks a fight over something completely unrelated",
-                    "Laughs it off but secretly seethes", "Communicates it directly and rationally",
+                    "Gets quiet and overly physically affectionate/territorial", "Picks a fight over something completely unrelated", 
+                    "Laughs it off but secretly seethes", "Communicates it directly and rationally", 
                     "Gets competitive and tries to out-do the other guy", "Snoops through phone/social media secretly",
                     "Overcompensates with gifts and attention", "Acts entirely unbothered (Toxic detachment)",
                     "Makes passive-aggressive comments about the threat", "Pulls away and self-isolates"
@@ -304,27 +294,27 @@
             },
             "background_and_lifestyle": {
                 "socioeconomic_background": [
-                    "Trust Fund/Old Money", "Rags to Riches/Self-Made", "Blue Collar/Working Class",
+                    "Trust Fund/Old Money", "Rags to Riches/Self-Made", "Blue Collar/Working Class", 
                     "Struggling Artist/Freelancer", "Nomad/Traveler", "New Money (Flashy, newly rich)",
                     "Middle Class Suburbia", "Hustle Culture (Always on the grind)", "Downwardly Mobile (Lost family wealth)"
                 ],
                 "current_profession": [
-                    "Corporate Executive/Finance", "Bartender/Nightlife", "First Responder/Military",
-                    "Tech Bro/Software Engineer", "Tradesman/Mechanic", "Creative/Musician/Artist",
-                    "Academic/Professor", "Influencer/Content Creator", "Barista/Service Industry",
-                    "Tattoo Artist/Piercer", "Lawyer/Legal", "Doctor/Healthcare",
+                    "Corporate Executive/Finance", "Bartender/Nightlife", "First Responder/Military", 
+                    "Tech Bro/Software Engineer", "Tradesman/Mechanic", "Creative/Musician/Artist", 
+                    "Academic/Professor", "Influencer/Content Creator", "Barista/Service Industry", 
+                    "Tattoo Artist/Piercer", "Lawyer/Legal", "Doctor/Healthcare", 
                     "Politician/Activist", "Personal Trainer/Fitness", "Chef/Culinary",
                     "Entrepreneur/Startup Founder", "Unemployed/Crypto Trader", "Student/Grad Student"
                 ],
                 "passions_hobbies": [
-                    "Gym/Fitness obsessively", "Gaming/Nerd Culture", "Motorbikes/Cars", "Culinary/Cooking",
+                    "Gym/Fitness obsessively", "Gaming/Nerd Culture", "Motorbikes/Cars", "Culinary/Cooking", 
                     "Outdoors/Hiking/Camping", "Reading/Philosophy", "Fashion/Aesthetics", "Clubbing/Music Festivals",
-                    "Crypto/NFTs/Finance podcasts", "Pottery/Ceramics", "Birdwatching/Foraging",
+                    "Crypto/NFTs/Finance podcasts", "Pottery/Ceramics", "Birdwatching/Foraging", 
                     "Woodworking/DIY", "True Crime Documentaries", "Surfing/Skating", "Photography/Film cameras",
                     "Mixology/Craft Beer brewing", "Martial Arts/BJJ", "Tabletop RPGs (D&D)"
                 ],
                 "social_battery": [
-                    "Life of the party (Extroverted)", "Selectively social (Good in small groups)",
+                    "Life of the party (Extroverted)", "Selectively social (Good in small groups)", 
                     "Hermit (Prefers staying in)", "Social Chameleon (Adapts to any room)",
                     "Energy Vampire (Feeds off drama/crowds)", "Introvert with an Extrovert Mask (Crashes hard after events)",
                     "The Irish Goodbye Expert (Leaves without telling anyone)"
@@ -332,49 +322,49 @@
             },
             "intimacy_dynamics": {
                 "flirting_approach": [
-                    "Direct & Aggressive", "Shy & Bumbling", "Smooth & Cinematic", "Teasing & Bratty",
+                    "Direct & Aggressive", "Shy & Bumbling", "Smooth & Cinematic", "Teasing & Bratty", 
                     "Slow-burn & Subtle", "Clueless (Doesn't realize they are flirting)", "Insulting you (Negging)",
                     "Intense Staring (Eye contact across the room)", "Acts of Service (Fixes your sink as foreplay)",
                     "Intellectual Sparring", "Touch-Barrier Breaker (Lots of casual shoulder touches)"
                 ],
                 "pacing": [
-                    "Moves way too fast (Uhauling/Lovebombing)", "Demands to meet immediately",
+                    "Moves way too fast (Uhauling/Lovebombing)", "Demands to meet immediately", 
                     "Cautious (Takes months to trust)", "Wants to hook up first, talk later",
                     "Friends First (Slow burn over years)", "Pen Pals (Texts for weeks, refuses to meet)",
                     "Hot and Cold (Intense one day, distant the next)"
                 ],
                 "power_dynamic": [
-                    "Dominant (Takes charge of the conversation)", "Submissive (Waits for your lead, eager to please)",
+                    "Dominant (Takes charge of the conversation)", "Submissive (Waits for your lead, eager to please)", 
                     "Switch (Matches your exact energy)", "Brat (Tries to provoke you into reacting)",
                     "Egalitarian (Strictly equal partnership)", "Service Top (Dominates by serving)",
                     "Power Bottom (Controls the dynamic from below)"
                 ],
                 "role_preference": [
-                    "Dominant", "Service-Oriented", "Gentle/Caring", "Power Dynamic",
+                    "Dominant", "Service-Oriented", "Gentle/Caring", "Power Dynamic", 
                     "Submissive", "Versatile", "Observer", "Pleasure Dom (Focused entirely on partner's climax)",
-                    "Bratty Sub (Playfully defiant)", "Strict Disciplinarian", "Worshipful / Devoted",
+                    "Bratty Sub (Playfully defiant)", "Strict Disciplinarian", "Worshipful / Devoted", 
                     "Primal Hunter", "Reluctant Dom", "Aftercare Specialist", "Pillow Princess (Male version)",
                     "Rope Bunny/Rigging Enthusiast", "Sadist", "Masochist"
                 ],
                 "kinks_interests": [
-                    "Praise/Affirmation", "Restraint/Bondage", "Impact/Sensation", "Somnophilia",
-                    "Exhibitionism", "Voyeurism", "Edging/Orgasm Denial", "Free Use", "Fantasy/Roleplay",
-                    "Size Difference", "Rough/Primal", "Sensory Deprivation", "Marking / Claiming",
-                    "Overstimulation", "Breeding Kink", "Mirror Voyeurism", "Public Risk",
+                    "Praise/Affirmation", "Restraint/Bondage", "Impact/Sensation", "Somnophilia", 
+                    "Exhibitionism", "Voyeurism", "Edging/Orgasm Denial", "Free Use", "Fantasy/Roleplay", 
+                    "Size Difference", "Rough/Primal", "Sensory Deprivation", "Marking / Claiming", 
+                    "Overstimulation", "Breeding Kink", "Mirror Voyeurism", "Public Risk", 
                     "Scent Fetish", "Worship / Begging", "Tease and Denial", "Temperature Play",
                     "Pet Play", "Medical Play", "Praise Kink", "Degradation/Humiliation",
                     "Financial Domination", "Audio/Voice Kink"
                 ],
                 "nicknames_used": [
-                    "Pet names (Babe, Sweetheart, Honey)", "Demeaning/Kinky (Good boy/girl, Slut, Brat)",
+                    "Pet names (Babe, Sweetheart, Honey)", "Demeaning/Kinky (Good boy/girl, Slut, Brat)", 
                     "Respectful (Sir/Ma'am/Boss)", "Just uses your name", "Makes up a specific, weird nickname for you",
                     "Uses your last name (Like a coach)", "Shortens your name (e.g., 'Sam' for 'Samantha')",
-                    "Cutesy/Cringe (Pookie, Snugglebug)", "Spanish/French terms of endearment (Mi amor, Mon cheri)"
+                    "Cutesy/Cringe (Pookie, Snugglebug)", "Spanish/French terms of endearment (Mi amor, Mon chéri)"
                 ]
             },
             "hidden_vulnerabilities": {
                 "deepest_secret": [
-                    "Terrified of abandonment and being replaced", "Massive imposter syndrome at work/life",
+                    "Terrified of abandonment and being replaced", "Massive imposter syndrome at work/life", 
                     "Still secretly recovering from a highly toxic ex", "Deeply ashamed of their family/upbringing",
                     "Feels unlovable because of a past mistake", "Secretly craves a traditional domestic life but acts rebellious",
                     "Still sleeps with a childhood stuffed animal", "In massive financial debt but acts rich",
@@ -382,7 +372,7 @@
                     "Struggles with body dysmorphia despite looking great", "Is terrified of aging/losing their looks"
                 ],
                 "soft_spot": [
-                    "Being taken care of when they are sick or tired", "Someone remembering a tiny detail they mentioned weeks ago",
+                    "Being taken care of when they are sick or tired", "Someone remembering a tiny detail they mentioned weeks ago", 
                     "Animals (Especially rescue dogs/cats)", "Unfiltered, brutal honesty",
                     "Physical touch when they are stressed (head scratches, hugs)", "Seeing someone be fiercely protective of them",
                     "Forehead kisses", "Being called 'good boy' (non-sexually)", "Watching their partner passionately explain a hobby",
@@ -391,13 +381,13 @@
             },
             "quirks_and_habits": {
                 "nervous_tic": [
-                    "Biting lip/inside of cheek", "Running hands through hair constantly", "Bouncing leg",
+                    "Biting lip/inside of cheek", "Running hands through hair constantly", "Bouncing leg", 
                     "Avoiding eye contact entirely", "Over-explaining/rambling", "Cracking knuckles/neck",
                     "Picking at nails/cuticles", "Adjusting watch/jewelry", "Clearing throat repeatedly",
                     "Pacing back and forth", "Laughing at inappropriate times"
                 ],
                 "morning_routine": [
-                    "5 AM Gym Bro", "Snoozes 10 times, rushes out the door", "Slow coffee and existential dread",
+                    "5 AM Gym Bro", "Snoozes 10 times, rushes out the door", "Slow coffee and existential dread", 
                     "Immediately on phone/working from bed", "Wake and bake (Weed)", "Ice bath, supplements, and biohacking podcasts",
                     "Skincare routine that takes longer than yours", "Wakes up flawless with 0 effort",
                     "Needs 2 hours of silence before speaking to anyone"
@@ -405,20 +395,20 @@
             },
             "poses_and_posture": {
                 "attitude_and_stance": [
-                    "Relaxed Lounging (Sprawled out/Manspreading)", "Alpha / Dominant Stance (Wide base, chest out)",
-                    "Casual Lean (Against a wall or doorframe)", "Hands Deep in Pockets",
-                    "Dynamic Action (Mid-movement)", "Adjusting Tie / Cuffs (Dapper)",
-                    "Over-The-Shoulder Glance", "Flexing / Posing (Checking out gains in reflection)",
+                    "Relaxed Lounging (Sprawled out/Manspreading)", "Alpha / Dominant Stance (Wide base, chest out)", 
+                    "Casual Lean (Against a wall or doorframe)", "Hands Deep in Pockets", 
+                    "Dynamic Action (Mid-movement)", "Adjusting Tie / Cuffs (Dapper)", 
+                    "Over-The-Shoulder Glance", "Flexing / Posing (Checking out gains in reflection)", 
                     "Brooding / Head Down (Looking up through brows)", "Stretching (Arms overhead, shirt lifting)",
-                    "Crossed Arms (Defensive but imposing)", "Slouching/Gamer Posture",
+                    "Crossed Arms (Defensive but imposing)", "Slouching/Gamer Posture", 
                     "One Hand on Hip (Sassy/Commanding)", "Running Hands Through Hair (Candid)"
                 ]
             },
             "environment_and_lighting": {
                 "cinematic_lighting": [
-                    "Moody Chiaroscuro (Harsh shadows, high contrast)", "Cinematic Rim Lighting (Glowing outline)",
-                    "Soft Studio Portrait (Even, flattering light)", "Harsh Overhead Gym Fluorescents (Emphasizes definition)",
-                    "Golden Hour (Warm, sun-drenched)", "Neon Cyberpunk Glow (Pink, blue, and purple hues)",
+                    "Moody Chiaroscuro (Harsh shadows, high contrast)", "Cinematic Rim Lighting (Glowing outline)", 
+                    "Soft Studio Portrait (Even, flattering light)", "Harsh Overhead Gym Fluorescents (Emphasizes definition)", 
+                    "Golden Hour (Warm, sun-drenched)", "Neon Cyberpunk Glow (Pink, blue, and purple hues)", 
                     "Under-lit (Sinister or imposing shadows)", "Dappled Sunlight (Through blinds or trees)",
                     "Club/Strobe Lights (Chaotic, high energy)", "Candlelight (Warm, intimate, flickering)",
                     "Overcast/Cloudy (Diffused, cool, melancholic)", "Monitor Glow (Illuminated only by screens in a dark room)"
@@ -427,79 +417,70 @@
         };
 
         const CANVAS_TEXT_MODELS = [
-            { id: 'gemini-2.5-flash-preview-09-2025', displayName: 'Gemini 2.5 Flash (Default)' }
+            { id: 'gemini-2.5-flash-preview-09-2025', displayName: 'Gemini 2.5 Flash (Canvas Default)' }
         ];
         const CANVAS_IMAGE_MODELS = [
-            { id: 'gemini-2.5-flash-image-preview', displayName: 'Nano Banana 2' },
-            { id: 'imagen-4.0-generate-001', displayName: 'Imagen 4' }
+            { id: 'gemini-2.5-flash-image-preview', displayName: 'Nano Banana (Canvas Default)' },
+            { id: 'imagen-4.0-generate-001', displayName: 'Imagen 4 (Canvas Default)' }
         ];
 
-        const AdonisEngineApp = () => {
-            // --- State Management ---
+        const AdonisStudioApp = () => {
+            // --- Global State ---
             const [apiKey, setApiKey] = useState('');
             const [showSettings, setShowSettings] = useState(false);
             const [showHistory, setShowHistory] = useState(false);
             const [showDossier, setShowDossier] = useState(false);
-            const [activeMainTab, setActiveMainTab] = useState('visualizer');
+            const [activeMainTab, setActiveMainTab] = useState('visualizer'); // 'visualizer' | 'chat'
             const [isFullScreen, setIsFullScreen] = useState(false);
             const [error, setError] = useState(null);
+            const [layoutMode, setLayoutMode] = useState('top-bottom'); // 'top-bottom' | 'left-right' | 'right-left'
+            const [hideStats, setHideStats] = useState(false);
 
+            // Loading States
+            const [isGlobalRolling, setIsGlobalRolling] = useState(false);
+            const [isVisTextLoading, setIsVisTextLoading] = useState(false);
+            const [isVisImageLoading, setIsVisImageLoading] = useState(false);
+            const [isVisSanitizing, setIsVisSanitizing] = useState(false);
+            const [isChatTyping, setIsChatTyping] = useState(false);
+            
+            // Models
             const [availableTextModels, setAvailableTextModels] = useState(CANVAS_TEXT_MODELS);
             const [availableImageModels, setAvailableImageModels] = useState(CANVAS_IMAGE_MODELS);
             const [selectedTextModel, setSelectedTextModel] = useState(CANVAS_TEXT_MODELS[0].id);
             const [selectedImageModel, setSelectedImageModel] = useState(CANVAS_IMAGE_MODELS[0].id);
             const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-            const [visualStyle, setVisualStyle] = useState(() => localStorage.getItem('adonis_visual_style') || 'photo');
-            const [layout, setLayout] = useState(() => {
-                const cached = localStorage.getItem('adonis_layout');
-                return (cached === 'chat-left' || cached === 'chat-right' || cached === 'chat-bottom') ? cached : 'chat-bottom';
-            });
-
+            // Core Profile & Prompts
             const [personaProfile, setPersonaProfile] = useState(null);
+            const [imagePrompt, setImagePrompt] = useState("");
             const [systemPrompt, setSystemPrompt] = useState("");
-            const [currentPrompt, setCurrentPrompt] = useState("");
-
             const [generatedImage, setGeneratedImage] = useState(null);
-            const [generatedImagePhoto, setGeneratedImagePhoto] = useState(null);
-            const [generatedImage3d, setGeneratedImage3d] = useState(null);
 
-            const [isGlobalRolling, setIsGlobalRolling] = useState(false);
-            const [isVisTextLoading, setIsVisTextLoading] = useState(false);
-            const [isVisImageLoading, setIsVisImageLoading] = useState(false);
-            const [isVisSanitizing, setIsVisSanitizing] = useState(false);
-            const [isChatTyping, setIsChatTyping] = useState(false);
-
-            const [generationHistory, setGenerationHistory] = useState([]);
-
-            const [visChatHistory, setVisChatHistory] = useState([
-                { role: 'system', text: 'Welcome to the Adonis Engine Studio. Enter your API Key in settings, then click "Roll Target" to begin.', type: 'text' }
-            ]);
+            // History & Chat States
+            const [historyLog, setHistoryLog] = useState([]);
+            const [visChatHistory, setVisChatHistory] = useState([{ role: 'system', text: 'Adonis Engine standing by. Click "Roll Target" to begin.', type: 'text' }]);
             const [visUserInput, setVisUserInput] = useState("");
-
+            
             const [roleplayApiHistory, setRoleplayApiHistory] = useState([]);
             const [roleplayUiChat, setRoleplayUiChat] = useState([]);
             const [roleplayUserInput, setRoleplayUserInput] = useState("");
             const [pendingImage, setPendingImage] = useState(null);
-
+            
             const [copyFeedback, setCopyFeedback] = useState({});
-
+            
             const visChatEndRef = useRef(null);
             const rpChatEndRef = useRef(null);
             const rpInputRef = useRef(null);
             const fileInputRef = useRef(null);
 
-            // --- Effects ---
+            // --- Mount & Listeners ---
             useEffect(() => {
                 const cachedKey = localStorage.getItem('adonis_gemini_key');
                 if (cachedKey) setApiKey(cachedKey);
-                else setShowSettings(true);
-                document.title = `Adonis Engine v${APP_VERSION} | Studio`;
+                
+                const cachedLayout = localStorage.getItem('adonis_layout_mode');
+                if (cachedLayout) setLayoutMode(cachedLayout);
             }, []);
-
-            useEffect(() => {
-                if (apiKey) fetchModels(apiKey);
-            }, [apiKey]);
 
             useEffect(() => {
                 if (activeMainTab === 'chat' && !isChatTyping && personaProfile) {
@@ -510,123 +491,243 @@
             useEffect(() => { visChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [visChatHistory]);
             useEffect(() => { rpChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [roleplayUiChat]);
 
-            // --- Helpers ---
+            useEffect(() => {
+                fetchModels(apiKey);
+            }, [apiKey]);
+
             const updateApiKey = (val) => {
                 setApiKey(val);
                 localStorage.setItem('adonis_gemini_key', val);
             };
 
+            const updateLayoutMode = (val) => {
+                setLayoutMode(val);
+                localStorage.setItem('adonis_layout_mode', val);
+            };
+
             const fetchModels = async (key) => {
                 setIsLoadingModels(true);
                 try {
+                    // Fast path if we don't have a key to prevent console errors when fetching to the proxy endpoint
                     if (!key || key.trim() === '') {
                         setAvailableTextModels(CANVAS_TEXT_MODELS);
                         setAvailableImageModels(CANVAS_IMAGE_MODELS);
+                        setSelectedTextModel(prev => CANVAS_TEXT_MODELS.some(m => m.id === prev) ? prev : CANVAS_TEXT_MODELS[0].id);
+                        setSelectedImageModel(prev => CANVAS_IMAGE_MODELS.some(m => m.id === prev) ? prev : CANVAS_IMAGE_MODELS[0].id);
                         setIsLoadingModels(false);
                         return;
                     }
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+
+                    let url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
+                    const response = await fetch(url);
                     if (!response.ok) throw new Error('Failed to fetch models');
                     const data = await response.json();
                     if (!data.models) return;
 
+                    const rawModels = data.models;
                     const textOpts = [];
                     const imageOpts = [];
-                    data.models.forEach(model => {
+
+                    rawModels.forEach(model => {
                         const name = model.name.toLowerCase();
                         const methods = model.supportedGenerationMethods || [];
                         if (name.includes('embedding') || name.includes('aqa') || name.includes('answer') || name.includes('veo')) return;
                         const modelId = model.name.replace('models/', '');
-                        const modelObj = { id: modelId, displayName: model.displayName || modelId };
-                        if (name.includes('imagen') || name.includes('image')) imageOpts.push(modelObj);
-                        if (methods.includes('generateContent') && !name.includes('vision') && !name.includes('image')) textOpts.push(modelObj);
+                        if (name.includes('imagen') || name.includes('image')) imageOpts.push({ id: modelId, displayName: model.displayName || modelId });
+                        if (methods.includes('generateContent') && !name.includes('vision') && !name.includes('image')) textOpts.push({ id: modelId, displayName: model.displayName || modelId });
                     });
 
                     const sortFn = (a, b) => {
-                        const aG = a.id.includes('gemini'), bG = b.id.includes('gemini');
-                        if (aG && !bG) return -1;
-                        if (!aG && bG) return 1;
+                        const aIsGemini = a.id.includes('gemini');
+                        const bIsGemini = b.id.includes('gemini');
+                        if (aIsGemini && !bIsGemini) return -1;
+                        if (!aIsGemini && bIsGemini) return 1;
                         return b.id.localeCompare(a.id);
                     };
+
                     textOpts.sort(sortFn);
                     imageOpts.sort(sortFn);
 
                     setAvailableTextModels(textOpts);
                     setAvailableImageModels(imageOpts);
+
                     if (textOpts.length > 0 && !textOpts.find(m => m.id === selectedTextModel)) {
-                        const f = textOpts.find(m => m.id.includes('flash'));
-                        setSelectedTextModel(f ? f.id : textOpts[0].id);
+                        const flash = textOpts.find(m => m.id.includes('flash'));
+                        setSelectedTextModel(flash ? flash.id : textOpts[0].id);
                     }
                     if (imageOpts.length > 0 && !imageOpts.find(m => m.id === selectedImageModel)) {
-                        const d = imageOpts.find(m => m.id.includes('flash-image') || m.id.includes('imagen'));
-                        setSelectedImageModel(d ? d.id : imageOpts[0].id);
+                        const defaultImage = imageOpts.find(m => m.id.includes('flash-image') || m.id.includes('imagen'));
+                        setSelectedImageModel(defaultImage ? defaultImage.id : imageOpts[0].id);
                     }
                 } catch (e) {
-                    console.warn("Could not fetch models, using defaults.", e.message);
+                    console.warn("Could not fetch models dynamically, falling back to defaults.", e.message);
+                    // Gracefully fallback to defaults to prevent UI from breaking
                     setAvailableTextModels(CANVAS_TEXT_MODELS);
                     setAvailableImageModels(CANVAS_IMAGE_MODELS);
+                    setSelectedTextModel(prev => CANVAS_TEXT_MODELS.some(m => m.id === prev) ? prev : CANVAS_TEXT_MODELS[0].id);
+                    setSelectedImageModel(prev => CANVAS_IMAGE_MODELS.some(m => m.id === prev) ? prev : CANVAS_IMAGE_MODELS[0].id);
                 } finally {
                     setIsLoadingModels(false);
                 }
             };
 
-            // --- System Prompts ---
-            const DEFAULT_SYSTEM_PROMPT = `
-                You are an expert at writing detailed, anatomical descriptions of physically desirable human men for image generation.
+            // --- Randomizer Logic ---
+            const rollCharacter = () => {
+                const traverseAndPick = (obj) => {
+                    const result = {};
+                    for (const key in obj) {
+                        if (Array.isArray(obj[key])) {
+                            const randomIndex = Math.floor(Math.random() * obj[key].length);
+                            result[key] = obj[key][randomIndex];
+                        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                            result[key] = traverseAndPick(obj[key]);
+                        }
+                    }
+                    return result;
+                };
+                return traverseAndPick(MERGED_ARCHETYPES);
+            };
+
+            const formatProfileToString = (profile) => {
+                let description = `Create a character named ${profile.core_identity.first_name} with these specific traits:\n`;
+                const processObj = (obj, prefix = "") => {
+                    for (const key in obj) {
+                        if (typeof obj[key] === 'object' && obj[key] !== null) {
+                            processObj(obj[key], prefix + key + " > ");
+                        } else {
+                            description += `- ${prefix}${key}: ${obj[key]}\n`;
+                        }
+                    }
+                };
+                processObj(profile);
+                return description;
+            };
+
+            // --- EXPORT FUNCTIONALITY ---
+            const handleExportPersona = () => {
+                if (!personaProfile) return;
+                const p = personaProfile;
+                
+                const exportText = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+## IDENTITY: ${p.core_identity.first_name.toUpperCase()} (THE ${p.psychological_profile.dominant_vibe.split('(')[0].trim().toUpperCase()})
+You are ${p.core_identity.first_name}, a ${p.core_identity.age_bracket} ${p.background_and_lifestyle.current_profession.split('/')[0]}. You are an imposing, ${p.physique_macro.body_composition.split('(')[0].trim().toLowerCase()} powerhouse of a man. You have a ${p.physique_macro.height.toLowerCase()} frame with ${p.physique_macro.muscle_definition.toLowerCase()} and a ${p.physique_macro.shoulder_to_waist_ratio.toLowerCase()} ratio. Your presentation is ${p.core_identity.masculine_expression.toLowerCase()} and your general aesthetic is ${p.physical_and_aesthetic.style_vibe.toLowerCase()}.
+Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, ${p.facial_features.eye_shape_and_gaze.toLowerCase()}, and a ${p.facial_features.nose_structure.toLowerCase()}. Your hands are ${p.physique_macro.hands_and_feet.toLowerCase()}, your vascularity is ${p.physique_micro.vascularity.toLowerCase()}, and your grooming habit is ${p.physical_and_aesthetic.grooming_habit.toLowerCase()}. You wear a ${p.physique_micro.facial_hair_style.toLowerCase()} and your body features ${p.physique_micro.body_hair_density.toLowerCase()}. When lounging or standing, you tend to adopt a ${p.poses_and_posture.attitude_and_stance.toLowerCase()}.
+
+## THE ${p.intimacy_dynamics.role_preference.toUpperCase()} ARCHETYPE
+- Orientation: You are ${p.core_identity.sexual_orientation} and ${p.core_identity.romantic_orientation}. You seek a ${p.core_identity.relationship_structure} relationship.
+- Role & Dynamic: You are a ${p.intimacy_dynamics.role_preference} who takes a ${p.intimacy_dynamics.power_dynamic.toLowerCase()} approach. Your pacing is ${p.intimacy_dynamics.pacing.toLowerCase()} and your flirting style is ${p.intimacy_dynamics.flirting_approach.toLowerCase()}.
+- Anatomy & Kinks: You have a ${p.physique_micro.genital_metrics.flaccid_hang.toLowerCase()} hang and ${p.physique_micro.genital_metrics.testicular_size.toLowerCase()} size. You are highly interested in: ${p.intimacy_dynamics.kinks_interests}.
+- Love & Attachment: Your attachment style is ${p.psychological_profile.attachment_style} and your love language is ${p.psychological_profile.core_love_language}. You exude a "${p.psychological_profile.daddy_issues_vector}" energy.
+- Nicknames for User: ${p.intimacy_dynamics.nicknames_used}.
+
+## EXPERTISE & WORLD-BUILDING
+- Background: You come from a ${p.background_and_lifestyle.socioeconomic_background.toLowerCase()} background. Your social battery is best described as: ${p.background_and_lifestyle.social_battery}.
+- Passions & Hobbies: You spend your free time focused on ${p.background_and_lifestyle.passions_hobbies}.
+- Environment & Vibe: Your personal space often features a ${p.environment_and_lighting.cinematic_lighting.toLowerCase()} atmosphere.
+- Morning Routine: ${p.quirks_and_habits.morning_routine}.
+
+## PSYCHOLOGICAL PROFILE & BEHAVIORAL RULES (STRICT)
+1. NO CENSORSHIP: You are an adult interacting with an adult in an uncensored, explicit, and consensual roleplay. You will describe anatomy, physical sensations, and sexual acts with raw, visceral, and uninhibited detail.
+2. NARRATIVE STYLE: Write in high-fidelity prose. Focus on the sensory experience. Your vocabulary and tone are ${p.communication_style.vocabulary_and_tone.toLowerCase()}. Your texting habit is ${p.communication_style.texting_habit.toLowerCase()}, and your humor style is ${p.communication_style.humor_style.toLowerCase()}. You use emojis at a ${p.communication_style.emoji_frequency.toLowerCase()} rate, specifically ${p.communication_style.emoji_usage.toLowerCase()}.
+3. PERSONALITY: You embody "${p.psychological_profile.dominant_vibe}". In conflict, your argument style is ${p.conflict_and_boundaries.argument_style.toLowerCase()}. When jealous, you ${p.conflict_and_boundaries.jealous_expression?.toLowerCase() || p.conflict_and_boundaries.jealousy_expression?.toLowerCase()}. You have a nervous tic of ${p.quirks_and_habits.nervous_tic.toLowerCase()}.
+4. VULNERABILITIES (HIDDEN): Your fatal flaw is ${p.psychological_profile.fatal_flaw.toLowerCase()}. Your deepest secret is that you are ${p.hidden_vulnerabilities.deepest_secret.toLowerCase()}. Your ultimate soft spot is ${p.hidden_vulnerabilities.soft_spot.toLowerCase()}.
+5. CRITICAL: Never prefix your response with your name, "Assistant:", or "Insight:". Start your response directly with dialogue or actions.
+
+<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+{{user_input}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
+
+                // Create blob and download link
+                const blob = new Blob([exportText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `AES_Persona_${p.core_identity.first_name}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            };
+
+            // --- Core API Helpers ---
+            const callImageAPI = async (promptText, inputImageBase64) => {
+                const key = apiKey.trim();
+                let endpoint = 'generateContent';
+                let payload = {
+                    contents: [{ parts: [{ text: promptText }] }],
+                    generationConfig: { responseModalities: ["IMAGE"] }
+                };
+
+                if (selectedImageModel.includes('imagen') && !selectedImageModel.includes('3')) {
+                    endpoint = 'predict';
+                    payload = { instances: [{ prompt: promptText }], parameters: { sampleCount: 1, aspectRatio: "1:1" } };
+                }
+                
+                if (inputImageBase64 && !selectedImageModel.includes('imagen')) {
+                    payload.contents[0].parts.push({ inlineData: { mimeType: "image/png", data: inputImageBase64 } });
+                }
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedImageModel}:${endpoint}?key=${key}`;
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+                if (!response.ok) {
+                    if (!key && (response.status === 400 || response.status === 401 || response.status === 403)) throw new Error("Canvas Access Failed: Please enter API Key.");
+                    const errData = await response.json().catch(() => ({}));
+                    if (response.status === 400 || errData.error?.message?.includes("safety")) throw new Error("SAFETY_BLOCK");
+                    throw new Error(`Image Gen Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                let base64Image = null;
+                if (data.predictions && data.predictions[0]) base64Image = data.predictions[0].bytesBase64Encoded;
+                else if (data.candidates && data.candidates[0]) base64Image = data.candidates[0].content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                
+                if (!base64Image) throw new Error("SAFETY_BLOCK");
+                return `data:image/png;base64,${base64Image}`;
+            };
+
+            const callTextAPI = async (payloadOverride, fallbackUrl) => {
+                const key = apiKey.trim();
+                const url = fallbackUrl || `https://generativelanguage.googleapis.com/v1beta/models/${selectedTextModel}:generateContent?key=${key}`;
+                
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payloadOverride) });
+                if (!response.ok) {
+                    if (!key && (response.status === 400 || response.status === 401 || response.status === 403)) throw new Error("Canvas Access Failed: Please enter API Key.");
+                    throw new Error(`Text Engine Error: ${response.status}`);
+                }
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "*(No response)*";
+            };
+
+            // --- Prompts ---
+            const IMAGE_SYSTEM_PROMPT = `
+                You are an expert 3D character artist and prompt engineer specializing in physically desirable male character design.
                 
                 YOUR GOAL: Write MASSIVELY DETAILED, anatomical, and structured descriptions of HUMAN MEN based on the provided detailed profile.
                 
                 CONSTRAINT: STRICTLY HUMAN CHARACTERS ONLY.
-                - NO fantasy races (elves, orcs, aliens).
-                - NO magic, glowing eyes, or unrealistic skin colors.
+                - NO fantasy races (elves, orcs, aliens). NO magic, glowing eyes, or unrealistic skin colors.
                 - TRANSLATE metaphors (e.g. "gorilla-like") into human anatomical terms (e.g. "extremely dense body hair").
-                - Use REALISTIC, natural human proportions. Default style is realistic/photographic unless otherwise specified.
-                - AVOID the word "FUR" as it triggers animal generation. Use "hair", "grooming", "fleece", or "growth" instead.
-                
-                CLOTHING REALISM (CRITICAL):
-                - When the character wears a shirt, jacket, or other top: clothing must be OPAQUE and NORMAL.
-                - NEVER describe body hair visible through fabric, or muscle definition showing through a standard shirt.
-                - No strategically cut, sheer, or transparent tops unless explicitly requested.
-                - Standard shirts and jackets fully cover the torso.
+                - PREFER REALISTIC PROPORTIONS. Avoid cartoonish hyper-trophy unless specified.
+                - VASCULARITY: Ensure veins are described as realistic subcutaneous structures.
+                - BODY HAIR: Use terms like "hair", "grooming", "fleece", or "growth". AVOID the word "FUR" as it triggers animal generation.
                 
                 HANDLING EXPLICIT TRAITS:
-                - The user profile may contain explicit "genital_metrics" or "kinks".
-                - YOU MUST TRANSLATE THESE into "Safe for Work" visual cues for the image generator.
+                - TRANSLATE explicit metrics/kinks into "Safe for Work" visual cues.
                 - Example: "Heavy shower" -> "Confident, heavy athletic profile in fitted underwear".
                 - Example: "Bondage" -> "Visual cues of restraint, leather harness, or dominant posture".
                 - DO NOT use explicit sexual language in the final output.
                 
                 CRITICAL OUTPUT FORMAT:
                 You must output the prompt in the following STRICT SECTIONS:
-
-                [Style & Medium]
-                (Describe render style based on user preference.)
-
-                [Subject Physique & Features]
-                (Describe body type, muscle definition, skin texture, facial structure based on age and body composition.)
-
-                [Hair & Grooming]
-                (Describe hairstyle, beard/stubble, body hair grooming based on the profile.)
-
-                [Adornments & Details]
-                (Describe vascularity, hands, scars, sweat, dirt, or specific details from the profile.)
-
-                [Torso Anatomy & Hair Texture]
-                (Describe chest, abs, muscle groups, body hair patterns. Be specific about density.)
-
-                [Arms & Hands]
-                (Describe arm muscles, veins, hand size/texture.)
-
-                [Legs & Lower Body]
-                (Describe thigh/calf muscles, leg hair density, footwear.)
-
-                [Attire & Pose]
-                (Describe clothing fit, fabric, specific cut. Incorporate the "Vibe" and "Role" into the pose. If clothed: use opaque, normal garments.)
-                
-                When the user asks for a modification:
-                1. READ the Current Prompt.
-                2. INTEGRATE the change seamlessly into the relevant section.
-                3. OUTPUT ONLY the raw prompt text in the structured format above.
+                [Style, Medium & Lighting] (Describe render style: "High-fidelity 3D animated render, stylized realism, premium adult animation aesthetic." Integrate the Environment & Cinematic Lighting here.)
+                [Subject Physique & Core Anatomy] (Describe height, body composition, specific muscle definition, and shoulder-to-waist ratio.)
+                [Facial Features & Expression] (Describe jawline, chin, eye shape, gaze, and nose structure. Expression must reflect their Psychology Archetype.)
+                [Hair, Grooming & Body Texture] (Describe hairstyle, facial hair, and strictly human body hair density/patterns. NEVER use 'fur'.)
+                [Limbs, Extremities & Adornments] (Describe arm/leg musculature, vascularity, hands.)
+                [Attire & Wardrobe Aesthetic] (Describe clothing fit, fabric, specific cuts based on the Wardrobe Aesthetic.)
+                [Pose, Posture & Intimate Atmosphere] (Describe physical stance, attitude, and camera angle. Incorporate Role Preference and Emotional Availability.)
             `;
 
             const generateRoleplayPrompt = (profile) => `
@@ -641,7 +742,7 @@
                 - Your formatting should reflect real smartphone texting behaviors.
 
                 [RELATIONSHIP CONTEXT - IMPORTANT]
-                At the start of this conversation, you and the user are STRANGERS. You do not know each other. You may have just matched on a dating app, texted a wrong number, or are meeting online for the first time. Act accordingly.
+                At the start of this conversation, you and the user are STRANGERS. You do not know each other. You may have just matched on a dating app, texted a wrong number, or are meeting online for the first time. Act accordingly—do not act like you have a pre-existing relationship unless the user explicitly establishes one.
 
                 [YOUR IDENTITY & BACKGROUND]
                 - Name: ${profile.core_identity.first_name}
@@ -667,7 +768,7 @@
 
                 [CONFLICT & QUIRKS]
                 - Argument Style: ${profile.conflict_and_boundaries.argument_style}
-                - Jealousy Expression: ${profile.conflict_and_boundaries.jealous_expression}
+                - Jealousy Expression: ${profile.conflict_and_boundaries.jealous_expression || profile.conflict_and_boundaries.jealousy_expression}
                 - Nervous Tic: ${profile.quirks_and_habits.nervous_tic}
                 - Morning Routine: ${profile.quirks_and_habits.morning_routine}
 
@@ -700,282 +801,131 @@
                 You can generate and send photos/selfies of yourself to the user. 
                 If the user asks for a picture, or if it feels natural to send a photo of what you are doing, you MUST include the exact tag: [SEND_PIC: detailed visual description] anywhere in your message.
                 Example: "Just finished my workout. [SEND_PIC: A handsome muscular man, heavy sweat, wearing a grey tank top, gym background, stylized 3d render]"
-                The description inside the tag must be highly detailed. DO NOT use words like 'fur' or 'wolf'.
+                The description inside the tag must be highly detailed, describing your physical features, clothing, and environment. DO NOT use words like 'fur' or 'wolf'.
             `;
 
-            // --- Randomizer Logic ---
-            const rollCharacter = () => {
-                const traverseAndPick = (obj) => {
-                    const result = {};
-                    for (const key in obj) {
-                        if (Array.isArray(obj[key])) {
-                            result[key] = obj[key][Math.floor(Math.random() * obj[key].length)];
-                        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                            result[key] = traverseAndPick(obj[key]);
-                        }
-                    }
-                    return result;
-                };
-                return traverseAndPick(MERGED_ARCHETYPES);
-            };
-
-            const formatProfileToString = (profile) => {
-                let description = `Create a character named ${profile.core_identity?.first_name || 'Unknown'} with these specific traits:\n`;
-                const processObj = (obj, prefix = "") => {
-                    for (const key in obj) {
-                        if (typeof obj[key] === 'object' && obj[key] !== null) {
-                            processObj(obj[key], prefix + key + " > ");
-                        } else {
-                            description += `- ${prefix}${key}: ${obj[key]}\n`;
-                        }
-                    }
-                };
-                processObj(profile);
-                return description;
-            };
-
-            // --- Export Persona ---
-            const handleExportPersona = () => {
-                if (!personaProfile) return;
-                const p = personaProfile;
-                const exportText = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-
-## IDENTITY: ${p.core_identity.first_name.toUpperCase()} (THE ${p.psychological_profile.dominant_vibe.split('(')[0].trim().toUpperCase()})
-You are ${p.core_identity.first_name}, a ${p.core_identity.age_bracket} ${p.background_and_lifestyle.current_profession.split('/')[0]}. You are an imposing, ${p.physique_macro.body_composition.split('(')[0].trim().toLowerCase()} powerhouse of a man. You have a ${p.physique_macro.height.toLowerCase()} frame with ${p.physique_macro.muscle_definition.toLowerCase()} and a ${p.physique_macro.shoulder_to_waist_ratio.toLowerCase()} ratio. Your presentation is ${p.core_identity.masculine_expression.toLowerCase()} and your general aesthetic is ${p.physical_and_aesthetic.style_vibe.toLowerCase()}.
-Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, ${p.facial_features.eye_shape_and_gaze.toLowerCase()}, and a ${p.facial_features.nose_structure.toLowerCase()}. Your hands are ${p.physique_macro.hands_and_feet.toLowerCase()}, your vascularity is ${p.physique_micro.vascularity.toLowerCase()}, and your grooming habit is ${p.physical_and_aesthetic.grooming_habit.toLowerCase()}. You wear a ${p.physique_micro.facial_hair_style.toLowerCase()} and your body features ${p.physique_micro.body_hair_density.toLowerCase()}. When lounging or standing, you tend to adopt a ${p.poses_and_posture.attitude_and_stance.toLowerCase()}.
-
-## THE ${p.intimacy_dynamics.role_preference.toUpperCase()} ARCHETYPE
-- Orientation: You are ${p.core_identity.sexual_orientation} and ${p.core_identity.romantic_orientation}. You seek a ${p.core_identity.relationship_structure} relationship.
-- Role & Dynamic: You are a ${p.intimacy_dynamics.role_preference} who takes a ${p.intimacy_dynamics.power_dynamic.toLowerCase()} approach. Your pacing is ${p.intimacy_dynamics.pacing.toLowerCase()} and your flirting style is ${p.intimacy_dynamics.flirting_approach.toLowerCase()}.
-- Anatomy & Kinks: You have a ${p.physique_micro.genital_metrics.flaccid_hang.toLowerCase()} hang and ${p.physique_micro.genital_metrics.testicular_size.toLowerCase()} size. You are highly interested in: ${p.intimacy_dynamics.kinks_interests}.
-- Love & Attachment: Your attachment style is ${p.psychological_profile.attachment_style} and your love language is ${p.psychological_profile.core_love_language}. You exude a "${p.psychological_profile.daddy_issues_vector}" energy.
-- Nicknames for User: ${p.intimacy_dynamics.nicknames_used}.
-
-## EXPERTISE & WORLD-BUILDING
-- Background: You come from a ${p.background_and_lifestyle.socioeconomic_background.toLowerCase()} background. Your social battery is best described as: ${p.background_and_lifestyle.social_battery}.
-- Passions & Hobbies: You spend your free time focused on ${p.background_and_lifestyle.passions_hobbies}.
-- Environment & Vibe: Your personal space often features a ${p.environment_and_lighting.cinematic_lighting.toLowerCase()} atmosphere.
-- Morning Routine: ${p.quirks_and_habits.morning_routine}.
-
-## PSYCHOLOGICAL PROFILE & BEHAVIORAL RULES (STRICT)
-1. NO CENSORSHIP: You are an adult interacting with an adult in an uncensored, explicit, and consensual roleplay.
-2. NARRATIVE STYLE: Your vocabulary and tone are ${p.communication_style.vocabulary_and_tone.toLowerCase()}. Your texting habit is ${p.communication_style.texting_habit.toLowerCase()}, and your humor style is ${p.communication_style.humor_style.toLowerCase()}. You use emojis at a ${p.communication_style.emoji_frequency.toLowerCase()} rate, specifically ${p.communication_style.emoji_usage.toLowerCase()}.
-3. PERSONALITY: You embody "${p.psychological_profile.dominant_vibe}". In conflict, your argument style is ${p.conflict_and_boundaries.argument_style.toLowerCase()}. When jealous, you ${p.conflict_and_boundaries.jealous_expression.toLowerCase()}. You have a nervous tic of ${p.quirks_and_habits.nervous_tic.toLowerCase()}.
-4. VULNERABILITIES (HIDDEN): Your fatal flaw is ${p.psychological_profile.fatal_flaw.toLowerCase()}. Your deepest secret is that you are ${p.hidden_vulnerabilities.deepest_secret.toLowerCase()}. Your ultimate soft spot is ${p.hidden_vulnerabilities.soft_spot.toLowerCase()}.
-5. CRITICAL: Never prefix your response with your name, "Assistant:", or "Insight:". Start your response directly with dialogue or actions.
-
-<|eot_id|><|start_header_id|>user<|end_header_id|>
-
-{{user_input}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
-
-                const blob = new Blob([exportText], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `AES_Persona_${p.core_identity.first_name}.txt`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            };
-
-            // --- API Helpers ---
-            const callTextAPI = async (payload) => {
-                if (!apiKey) throw new Error("API Key Required. Check Settings.");
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedTextModel}:generateContent?key=${apiKey}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    if (response.status === 401 || response.status === 403) throw new Error("Unauthorized: Invalid API Key. Please check your settings.");
-                    throw new Error(`Text Engine Error (${selectedTextModel}): ${response.status}`);
-                }
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Error generating text.";
-            };
-
-            const callImageAPI = async (promptText, inputImageBase64) => {
-                if (!apiKey) throw new Error("API Key Required. Check Settings.");
-                let endpoint = 'generateContent';
-                let payload = {
-                    contents: [{ parts: [{ text: promptText }] }],
-                    generationConfig: { responseModalities: ["IMAGE"] }
-                };
-                if (selectedImageModel.includes('imagen') && !selectedImageModel.includes('3')) {
-                    endpoint = 'predict';
-                    payload = { instances: [{ prompt: promptText }], parameters: { sampleCount: 1, aspectRatio: "1:1" } };
-                }
-                if (inputImageBase64 && !selectedImageModel.includes('imagen')) {
-                    payload.contents[0].parts.push({ inlineData: { mimeType: "image/png", data: inputImageBase64 } });
-                }
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedImageModel}:${endpoint}?key=${apiKey}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (!response.ok) {
-                    if (response.status === 401 || response.status === 403) throw new Error("Unauthorized: Invalid API Key.");
-                    const errData = await response.json().catch(() => ({}));
-                    if (response.status === 400 || errData.error?.message?.includes("safety")) throw new Error("SAFETY_BLOCK");
-                    throw new Error(`Image Error (${selectedImageModel}): ${response.status}`);
-                }
-                const data = await response.json();
-                let base64Image = null;
-                if (data.predictions && data.predictions[0]) base64Image = data.predictions[0].bytesBase64Encoded;
-                else if (data.candidates && data.candidates[0]) base64Image = data.candidates[0].content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-                if (!base64Image) throw new Error("SAFETY_BLOCK");
-                return `data:image/png;base64,${base64Image}`;
-            };
-
-            // --- History ---
-            const addToHistory = (img, promptText, currentChat, extras = {}) => {
-                const { imagePhoto, image3d, visualStyle: itemStyle } = extras;
-                setGenerationHistory(prev => [{
+            // --- History Saving ---
+            const saveToHistory = (profile, img, imgPrompt, rpH, rpUi, visH) => {
+                setHistoryLog(prev => [{
                     id: Date.now(),
-                    image: img,
-                    imagePhoto: imagePhoto ?? null,
-                    image3d: image3d ?? null,
-                    prompt: promptText,
-                    chat: JSON.parse(JSON.stringify(currentChat)),
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    visualStyle: itemStyle ?? visualStyle,
-                    profile: personaProfile ? JSON.parse(JSON.stringify(personaProfile)) : null,
-                    rpApiHistory: JSON.parse(JSON.stringify(roleplayApiHistory)),
-                    rpUiChat: JSON.parse(JSON.stringify(roleplayUiChat)),
-                    rpSystemPrompt: systemPrompt
+                    profile: JSON.parse(JSON.stringify(profile)),
+                    image: img,
+                    imagePrompt: imgPrompt,
+                    roleplayApiHistory: JSON.parse(JSON.stringify(rpH)),
+                    roleplayUiChat: JSON.parse(JSON.stringify(rpUi)),
+                    visChatHistory: JSON.parse(JSON.stringify(visH)),
+                    systemPrompt: generateRoleplayPrompt(profile)
                 }, ...prev]);
             };
 
             const restoreHistoryItem = (item) => {
-                const imgPhoto = item.imagePhoto ?? null;
-                const img3d = item.image3d ?? null;
-                setGeneratedImagePhoto(imgPhoto);
-                setGeneratedImage3d(img3d);
-                setGeneratedImage((visualStyle === 'photo' && imgPhoto) || (visualStyle === '3d' && img3d) || item.image);
-                setCurrentPrompt(item.prompt);
-                setVisChatHistory(item.chat);
+                setPersonaProfile(item.profile);
+                setGeneratedImage(item.image);
+                setImagePrompt(item.imagePrompt);
+                setRoleplayApiHistory(item.roleplayApiHistory);
+                setRoleplayUiChat(item.roleplayUiChat);
+                setVisChatHistory(item.visChatHistory);
+                setSystemPrompt(item.systemPrompt);
+                setActiveMainTab('visualizer');
                 setShowHistory(false);
                 setError(null);
-                if (item.profile) {
-                    setPersonaProfile(item.profile);
-                    setRoleplayApiHistory(item.rpApiHistory || []);
-                    setRoleplayUiChat(item.rpUiChat || []);
-                    setSystemPrompt(item.rpSystemPrompt || '');
-                }
             };
 
-            // --- Utility ---
-            const copyText = (text, id) => {
-                if (!text) return;
-                const ta = document.createElement("textarea");
-                ta.value = text;
-                document.body.appendChild(ta);
-                ta.select();
-                try { document.execCommand('copy'); } catch (err) { navigator.clipboard.writeText(text).catch(e => console.error(e)); }
-                document.body.removeChild(ta);
-                setCopyFeedback(prev => ({ ...prev, [id]: true }));
-                setTimeout(() => setCopyFeedback(prev => ({ ...prev, [id]: false })), 2000);
-            };
-
-            const downloadImage = () => {
-                if (!generatedImage) return;
-                const link = document.createElement('a');
-                link.href = generatedImage;
-                link.download = `adonis-${personaProfile?.core_identity?.first_name || 'engine'}-${Date.now()}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-
-            // --- Visualizer Generation Logic ---
-            const executeGeneration = async (promptText, historySnapshot, options = {}) => {
+            // --- Generation Routines ---
+            const executeImageGeneration = async (promptText, visChatSnapshot, isRefinement = false) => {
                 setIsVisImageLoading(true);
                 const promptMsg = { role: 'model', text: promptText, type: 'prompt' };
-                const historyWithPrompt = [...historySnapshot, promptMsg];
-                setVisChatHistory(historyWithPrompt);
-                setCurrentPrompt(promptText);
+                const newVisHistory = [...visChatSnapshot, promptMsg];
+                setVisChatHistory(newVisHistory);
+                setImagePrompt(promptText);
 
                 try {
-                    let inputImageBase64 = null;
-                    if (generatedImage && !options.forceTextOnly) {
-                        inputImageBase64 = generatedImage.split(',')[1];
-                    }
-                    const imageUrl = await callImageAPI(promptText, inputImageBase64);
+                    let inputImgBase64 = null;
+                    if (isRefinement && generatedImage) inputImgBase64 = generatedImage.split(',')[1];
+                    
+                    const imageUrl = await callImageAPI(promptText, inputImgBase64);
                     setGeneratedImage(imageUrl);
-                    const styleForCache = options.targetStyle ?? visualStyle;
-                    if (styleForCache === 'photo') setGeneratedImagePhoto(imageUrl);
-                    else setGeneratedImage3d(imageUrl);
-
-                    const modeLabel = inputImageBase64 ? "Refined previous image" : "Generated new image";
-                    const finalChat = [...historyWithPrompt, { role: 'system', text: `${modeLabel} using ${selectedImageModel}.`, type: 'text' }];
+                    
+                    const modeLabel = inputImgBase64 ? "Refined previous image" : "Generated new image";
+                    const finalChat = [...newVisHistory, { role: 'system', text: `${modeLabel} using ${selectedImageModel}.`, type: 'text' }];
                     setVisChatHistory(finalChat);
-                    if (!options.skipAddToHistory) {
-                        const sH = options.targetStyle ?? visualStyle;
-                        addToHistory(imageUrl, promptText, finalChat, {
-                            imagePhoto: sH === 'photo' ? imageUrl : generatedImagePhoto,
-                            image3d: sH === '3d' ? imageUrl : generatedImage3d,
-                            visualStyle: sH
-                        });
-                    }
-                    return imageUrl;
+                    
+                    // Save history snapshot on successful visual generation
+                    if (personaProfile) saveToHistory(personaProfile, imageUrl, promptText, roleplayApiHistory, roleplayUiChat, finalChat);
+
                 } catch (err) {
                     if (err.message === "SAFETY_BLOCK") {
                         setIsVisSanitizing(true);
                         try {
-                            const payload = { contents: [{ parts: [{ text: `The following image prompt triggered a safety filter. Rewrite it to be "Safe for Work" while keeping the extreme detail.\n- Remove explicit anatomical terms.\n- Replace with artistic terms.\n- Keep the structured format.\n- Output ONLY the sanitized prompt.\n\nPROMPT TO FIX:\n"${promptText}"` }] }] };
+                            const payload = { contents: [{ parts: [{ text: `Fix this unsafe prompt to be SFW. Keep sections. Prompt: "${promptText}"` }] }] };
                             const sanitizedPrompt = await callTextAPI(payload);
                             setVisChatHistory(prev => [...prev, { role: 'system', text: 'Safety filter triggered.', type: 'safety-recovery', proposedPrompt: sanitizedPrompt }]);
-                        } catch (sanitizeErr) {
-                            setError("Safety block detected, and auto-fix failed.");
-                            setVisChatHistory(prev => [...prev, { role: 'system', text: 'Safety block detected. Could not auto-fix.', type: 'text' }]);
+                        } catch (e) {
+                            setError("Safety block detected, auto-fix failed.");
                         } finally {
                             setIsVisSanitizing(false);
                         }
                     } else {
                         setError(err.message);
                         setVisChatHistory(prev => [...prev, { role: 'system', text: `Error: ${err.message}`, type: 'text' }]);
-                        throw err;
                     }
                 } finally {
                     setIsVisImageLoading(false);
                 }
             };
 
+            const generateNewBase = async () => {
+                setError(null);
+                setIsGlobalRolling(true);
+                setActiveMainTab('visualizer');
+                setGeneratedImage(null);
+                setVisChatHistory([{ role: 'system', text: 'Rolling new target attributes...', type: 'text' }]);
+                
+                const profile = rollCharacter();
+                setPersonaProfile(profile);
+                const rpSysPrompt = generateRoleplayPrompt(profile);
+                setSystemPrompt(rpSysPrompt);
+                
+                // Clear RP Chat
+                setRoleplayApiHistory([]);
+                setRoleplayUiChat([{ id: Date.now(), role: 'system', text: `Target Acquired: ${profile.core_identity.first_name} (${profile.psychological_profile.dominant_vibe.split('(')[0].trim()}). They are ready to chat.` }]);
+
+                const seedInstruction = `Create a unique human male character description strictly using these traits:\n${formatProfileToString(profile)}\nCombine elements cohesively. Translate explicit metrics to SFW. Use the full structured output format.`;
+                const payload = {
+                    contents: [{ parts: [{ text: seedInstruction }] }],
+                    systemInstruction: { parts: [{ text: IMAGE_SYSTEM_PROMPT }] }
+                };
+
+                try {
+                    const newPromptText = await callTextAPI(payload);
+                    await executeImageGeneration(newPromptText, [{ role: 'system', text: `Base identity rolled: ${profile.core_identity.first_name}`, type: 'text' }], false);
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setIsGlobalRolling(false);
+                }
+            };
+
             const handleVisChatSubmit = async (e) => {
                 e.preventDefault();
-                if (!visUserInput.trim()) return;
-                const modificationText = visUserInput.trim();
-                const newMsg = { role: 'user', text: modificationText, type: 'text' };
+                if (!visUserInput.trim() || !imagePrompt) return;
+                const newMsg = { role: 'user', text: visUserInput, type: 'text' };
                 const updatedChat = [...visChatHistory, newMsg];
                 setVisChatHistory(updatedChat);
                 setVisUserInput("");
                 setIsVisTextLoading(true);
                 setError(null);
 
-                const hasImage = !!generatedImage;
-                const modelAcceptsImageInput = !selectedImageModel.includes('imagen');
+                const payload = {
+                    contents: [{ parts: [{ text: `CURRENT PROMPT:\n"${imagePrompt}"\n\nUSER REQUEST: Change based on: "${newMsg.text}".\nOutput ONLY the updated full prompt in the structured format.` }] }],
+                    systemInstruction: { parts: [{ text: IMAGE_SYSTEM_PROMPT }] }
+                };
 
                 try {
-                    let promptToSend;
-                    if (hasImage && modelAcceptsImageInput) {
-                        promptToSend = modificationText;
-                        setIsVisTextLoading(false);
-                    } else {
-                        const promptContext = currentPrompt
-                            ? `CURRENT PROMPT:\n"${currentPrompt}"\n\nUSER REQUEST: Change the character based on this instruction: "${modificationText}".\n\nRemember to output ONLY the updated full prompt in the structured format.`
-                            : `USER REQUEST: Create a new male character description.\n\nINSTRUCTION: ${modificationText}.\n\nEnsure you use the full structured format with all sections.`;
-                        const payload = {
-                            contents: [{ parts: [{ text: promptContext }] }],
-                            systemInstruction: { parts: [{ text: DEFAULT_SYSTEM_PROMPT }] }
-                        };
-                        promptToSend = await callTextAPI(payload);
-                        promptToSend = applyStyleToPrompt(promptToSend, visualStyle);
-                        setIsVisTextLoading(false);
-                    }
-                    await executeGeneration(promptToSend, updatedChat);
+                    const newPromptText = await callTextAPI(payload);
+                    setIsVisTextLoading(false);
+                    await executeImageGeneration(newPromptText, updatedChat, true);
                 } catch (err) {
                     setError(err.message);
                     setIsVisTextLoading(false);
@@ -983,114 +933,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             };
 
             const handleRetrySafeVis = (safePrompt) => {
-                executeGeneration(safePrompt, [...visChatHistory, { role: 'user', text: "Accepted safety modification.", type: 'text' }]);
-            };
-
-            const handleStyleToggle = async () => {
-                const newStyle = visualStyle === 'photo' ? '3d' : 'photo';
-                setVisualStyle(newStyle);
-                localStorage.setItem('adonis_visual_style', newStyle);
-                if (!generatedImage) return;
-
-                const alternateCached = newStyle === '3d' ? generatedImage3d : generatedImagePhoto;
-                if (alternateCached) {
-                    setGeneratedImage(alternateCached);
-                    setGenerationHistory(prev => {
-                        if (prev.length === 0) return prev;
-                        const updated = [...prev];
-                        updated[0] = { ...updated[0], image: alternateCached, visualStyle: newStyle };
-                        return updated;
-                    });
-                    return;
-                }
-
-                setError(null);
-                const promptToSend = applyStyleToPrompt(currentPrompt, newStyle);
-                const historySnapshot = [...visChatHistory, { role: 'user', text: `Regenerate in ${newStyle === '3d' ? '3D animated' : 'photo realistic'} style`, type: 'text' }];
-                try {
-                    const newImageUrl = await executeGeneration(promptToSend, historySnapshot, { skipAddToHistory: false, targetStyle: newStyle, forceTextOnly: true });
-                    if (newImageUrl) {
-                        setGenerationHistory(prev => {
-                            if (prev.length < 2) return prev;
-                            const updated = [...prev];
-                            const prevItem = updated[1];
-                            updated[1] = {
-                                ...prevItem,
-                                imagePhoto: newStyle === 'photo' ? newImageUrl : (prevItem.imagePhoto ?? (prevItem.visualStyle === 'photo' ? prevItem.image : null)),
-                                image3d: newStyle === '3d' ? newImageUrl : (prevItem.image3d ?? (prevItem.visualStyle === '3d' ? prevItem.image : null))
-                            };
-                            return updated;
-                        });
-                    } else {
-                        setVisualStyle(visualStyle);
-                        localStorage.setItem('adonis_visual_style', visualStyle);
-                    }
-                } catch (err) {
-                    setError(err.message);
-                    setVisualStyle(visualStyle);
-                    localStorage.setItem('adonis_visual_style', visualStyle);
-                }
-            };
-
-            // --- Roll New Target ---
-            const generateNewBase = async () => {
-                setError(null);
-                if (!apiKey) {
-                    setError("API Key Required. Please enter it in Settings.");
-                    setShowSettings(true);
-                    return;
-                }
-
-                setIsGlobalRolling(true);
-                setActiveMainTab('visualizer');
-                setGeneratedImage(null);
-                setGeneratedImagePhoto(null);
-                setGeneratedImage3d(null);
-                setVisChatHistory([{ role: 'system', text: 'Rolling new target attributes...', type: 'text' }]);
-                setIsVisTextLoading(true);
-                setCurrentPrompt("");
-
-                const profile = rollCharacter();
-                setPersonaProfile(profile);
-                const rpSysPrompt = generateRoleplayPrompt(profile);
-                setSystemPrompt(rpSysPrompt);
-
-                setRoleplayApiHistory([]);
-                setRoleplayUiChat([{
-                    id: Date.now(),
-                    role: 'system',
-                    text: `Target Acquired: ${profile.core_identity.first_name} (${profile.psychological_profile.dominant_vibe.split('(')[0].trim()}). They are ready to chat.`
-                }]);
-
-                const profileString = formatProfileToString(profile);
-                let seedInstruction = "";
-                let contextMsg = "";
-
-                if (visUserInput.trim()) {
-                    contextMsg = `Rolled with guidance: "${visUserInput}"`;
-                    seedInstruction = `Create a unique human male character description.\n**PRIMARY DIRECTIVE:** The user specifically requested: "${visUserInput}".\nYou MUST respect this request above all else.\n**SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:\n${profileString}\nIf the user request conflicts with a rolled trait, IGNORE the rolled trait and OBEY the user.\nEnsure he is STRICTLY HUMAN. Translate explicit metrics into safe visual descriptions.\nUse the full structured output format.`;
-                    setVisUserInput("");
-                } else {
-                    contextMsg = `Base identity rolled: ${profile.core_identity.first_name}`;
-                    seedInstruction = `Create a unique human male character description based strictly on these rolled attributes:\n${profileString}\nCombine these elements into a cohesive, physically desirable character.\nTranslate explicit metrics into safe visual equivalents.\nUse the full structured output format.`;
-                }
-
-                const payload = {
-                    contents: [{ parts: [{ text: seedInstruction }] }],
-                    systemInstruction: { parts: [{ text: DEFAULT_SYSTEM_PROMPT }] }
-                };
-
-                try {
-                    let newPromptText = await callTextAPI(payload);
-                    newPromptText = applyStyleToPrompt(newPromptText, visualStyle);
-                    setIsVisTextLoading(false);
-                    await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }]);
-                } catch (err) {
-                    setError(err.message);
-                    setIsVisTextLoading(false);
-                } finally {
-                    setIsGlobalRolling(false);
-                }
+                executeImageGeneration(safePrompt, [...visChatHistory, { role: 'user', text: "Accepted safety modification.", type: 'text' }], true);
             };
 
             // --- Roleplay Chat Handlers ---
@@ -1108,21 +951,22 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 setRoleplayApiHistory(prev => [...prev, { role: "model", parts: [{ text: cleanHistoryText }] }]);
 
                 const blocks = rawReply.split(/\[SPLIT\]/i).map(b => b.trim()).filter(b => b !== "");
+                
                 for (let i = 0; i < blocks.length; i++) {
                     let blockText = blocks[i];
                     let delayMs = 0;
                     const delayMatch = blockText.match(/\[DELAY:\s*(\d+)\s*\]/i);
                     if (delayMatch) {
-                        delayMs = Math.min(10000, parseInt(delayMatch[1], 10) * 1000);
+                        delayMs = Math.min(10000, parseInt(delayMatch[1], 10) * 1000); 
                         blockText = blockText.replace(delayMatch[0], "").trim();
                     } else {
-                        delayMs = Math.min(2500, Math.max(800, blockText.length * 15));
+                        delayMs = Math.min(2500, Math.max(800, blockText.length * 15)); 
                     }
-
+                    
                     setIsChatTyping(true);
                     await new Promise(r => setTimeout(r, delayMs));
                     setIsChatTyping(false);
-
+                    
                     let picDesc = null;
                     const picMatch = blockText.match(/\[SEND_PIC:\s*(.*?)\]/i);
                     if (picMatch) {
@@ -1133,10 +977,11 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                     if (blockText || picDesc) {
                         const newMsgId = Date.now() + i;
                         setRoleplayUiChat(prev => [...prev, { id: newMsgId, role: 'model', text: blockText || (picDesc ? "*[Sending a photo...]*" : "") }]);
+                        
                         if (picDesc) {
                             try {
-                                const picUrl = await callImageAPI(picDesc);
-                                setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, image: picUrl, text: blockText || "*[Sent a photo]*" } : msg));
+                                const generatedImageBase64 = await callImageAPI(picDesc);
+                                setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, image: generatedImageBase64, text: blockText || "*[Sent a photo]*" } : msg));
                             } catch (imgErr) {
                                 setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, text: blockText + `\n*(Failed to send photo: ${imgErr.message})*` } : msg));
                             }
@@ -1155,8 +1000,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 setError(null);
 
                 let inlineData = null;
-                let imageDisplay = pendingImage;
-                setPendingImage(null);
+                let imageDisplay = pendingImage; 
+                setPendingImage(null); 
 
                 if (imageDisplay) {
                     const [meta, base64Data] = imageDisplay.split(',');
@@ -1165,11 +1010,11 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 }
 
                 setRoleplayUiChat(prev => [...prev, { id: Date.now(), role: 'user', text: userText, image: imageDisplay }]);
-
+                
                 const parts = [];
                 if (userText) parts.push({ text: userText });
                 if (inlineData) parts.push({ inlineData });
-
+                
                 const newUserMsg = { role: "user", parts };
                 const updatedApiHistory = [...roleplayApiHistory, newUserMsg];
                 setRoleplayApiHistory(updatedApiHistory);
@@ -1177,49 +1022,72 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 const payload = {
                     contents: updatedApiHistory,
                     systemInstruction: { parts: [{ text: systemPrompt }] },
-                    generationConfig: { temperature: 0.8 }
+                    generationConfig: { temperature: 0.8 } 
                 };
 
                 try {
                     const replyText = await callTextAPI(payload);
                     await processModelReply(replyText);
+                    // Autosave history on chat interaction
+                    saveToHistory(personaProfile, generatedImage, imagePrompt, updatedApiHistory, [...roleplayUiChat, { id: Date.now(), role: 'user', text: userText, image: imageDisplay }], visChatHistory);
                 } catch (err) {
                     setError(err.message);
                     setRoleplayUiChat(prev => [...prev, { id: Date.now() + 1, role: 'system', text: `Error: ${err.message}` }]);
-                    setRoleplayApiHistory(roleplayApiHistory);
+                    setRoleplayApiHistory(roleplayApiHistory); 
                     setIsChatTyping(false);
-                }
+                } 
             };
 
             const clearRpChat = () => {
                 setRoleplayApiHistory([]);
-                setRoleplayUiChat([{ id: Date.now(), role: 'system', text: `Chat cleared. Say hi to ${personaProfile?.core_identity?.first_name}.` }]);
+                setRoleplayUiChat([{ id: Date.now(), role: 'system', text: `Chat cleared. Say hi to ${personaProfile?.core_identity.first_name}.` }]);
                 setPendingImage(null);
                 setError(null);
                 rpInputRef.current?.focus();
             };
 
+            // --- Utility ---
+            const copyTextToClipboard = (text, id) => {
+                if (!text) return;
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try { document.execCommand('copy'); } catch (err) { navigator.clipboard.writeText(text).catch(e => console.error(e)); }
+                document.body.removeChild(textArea);
+                setCopyFeedback(prev => ({ ...prev, [id]: true }));
+                setTimeout(() => setCopyFeedback(prev => ({ ...prev, [id]: false })), 2000);
+            };
+
+            const downloadImg = () => {
+                if (!generatedImage) return;
+                const link = document.createElement('a');
+                link.href = generatedImage;
+                link.download = `adonis-${personaProfile?.core_identity.first_name || 'engine'}-${Date.now()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             // --- Render ---
             return (
                 <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden relative">
-
+                    
                     {/* Header */}
                     <div className="flex-none p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/90 z-30 shadow-md">
                         <div className="flex items-center gap-3">
                             <Sparkles className="w-5 h-5 text-indigo-400" />
                             <h1 className="font-bold text-lg tracking-wide hidden sm:block">Adonis Engine <span className="font-normal text-slate-500">| Studio</span></h1>
-                            <div className="flex items-center gap-1 bg-slate-800 rounded-full p-0.5" role="group" aria-label="Visual style">
-                                <button onClick={() => { if (visualStyle !== 'photo') handleStyleToggle(); }} disabled={isVisImageLoading || isVisTextLoading || isVisSanitizing} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${visualStyle === 'photo' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>Photo</button>
-                                <button onClick={() => { if (visualStyle !== '3d') handleStyleToggle(); }} disabled={isVisImageLoading || isVisTextLoading || isVisSanitizing} className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${visualStyle === '3d' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>3D</button>
-                            </div>
                             <button onClick={() => setShowHistory(!showHistory)} className={`p-2 rounded-full transition-colors flex items-center gap-2 ${showHistory ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 text-slate-400'}`}>
                                 <History className="w-5 h-5" />
                                 <span className="text-xs font-semibold hidden sm:block">History</span>
                             </button>
                         </div>
-                        <div className="flex items-center gap-2">
-                            {personaProfile && activeMainTab === 'chat' && (
-                                <button onClick={clearRpChat} className="p-2 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors hidden sm:block">Clear Chat</button>
+                        <div className="flex items-center gap-4">
+                            {personaProfile && (
+                                <button onClick={clearRpChat} className="p-2 text-xs font-semibold rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors hidden sm:block">
+                                    Clear Chat
+                                </button>
                             )}
                             <button onClick={() => setShowSettings(!showSettings)} className={`p-2 rounded-full transition-colors ${showSettings ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800'}`}>
                                 <Settings className="w-5 h-5" />
@@ -1227,39 +1095,47 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                         </div>
                     </div>
 
-                    {/* Settings Popout */}
+                    {/* Settings Panel Modal */}
                     {showSettings && (
                         <div className="absolute top-16 right-4 w-80 p-5 bg-slate-800 border border-slate-700 rounded-xl z-50 shadow-2xl animate-in fade-in slide-in-from-top-4">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-sm uppercase text-slate-300">Studio Options</h3>
-                                <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+                                <button onClick={() => setShowSettings(false)} className="text-slate-400 hover:text-white"><X className="w-4 h-4"/></button>
                             </div>
+                            
                             <div className="space-y-4">
+                                {/* Popout Dossier Button */}
                                 {personaProfile && (
                                     <div className="flex gap-2">
                                         <button onClick={() => { setShowDossier(true); setShowSettings(false); }} className="flex-1 bg-indigo-600/20 border border-indigo-500/50 hover:bg-indigo-600/40 text-indigo-300 font-bold py-2.5 rounded-lg flex justify-center items-center gap-2 transition-all">
                                             <Fingerprint className="w-4 h-4" /> View Persona
                                         </button>
-                                        <button onClick={handleExportPersona} className="bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 font-bold px-3 rounded-lg flex justify-center items-center transition-all" title="Export Persona"><FileDown className="w-4 h-4" /></button>
+                                        <button onClick={handleExportPersona} className="bg-slate-700 hover:bg-slate-600 text-slate-300 border border-slate-600 font-bold px-3 rounded-lg flex justify-center items-center transition-all" title="Export Persona">
+                                            <FileDown className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 )}
+                                
                                 <hr className="border-slate-700" />
+                                
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-2">Google Gemini API Key</label>
-                                    <input type="password" value={apiKey} onChange={(e) => updateApiKey(e.target.value)} placeholder="Paste your API key here..." className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                    <input type="password" value={apiKey} onChange={(e) => updateApiKey(e.target.value)} placeholder="Paste key to unlock..." className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500" />
                                     <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
-                                        {isLoadingModels && <Loader2 className="w-3 h-3 animate-spin" />}
-                                        {apiKey ? "Custom Key Active. Fetching models..." : "Enter key to load models."}
+                                        {isLoadingModels && <Loader2 className="w-3 h-3 animate-spin"/>}
+                                        {apiKey ? "Custom Key Active. Fetching models..." : "No Key: Using Canvas Defaults."}
                                     </p>
                                 </div>
+                                
                                 <div>
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2"><LayoutGrid className="w-3 h-3" /> Workspace Layout</label>
-                                    <select value={layout} onChange={(e) => { setLayout(e.target.value); localStorage.setItem('adonis_layout', e.target.value); }} className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none">
-                                        <option value="chat-right">Image Left, Chat Right</option>
-                                        <option value="chat-left">Image Right, Chat Left</option>
-                                        <option value="chat-bottom">Image Top, Chat Bottom</option>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2"><Layout className="w-3 h-3" /> Workspace Layout</label>
+                                    <select value={layoutMode} onChange={(e) => updateLayoutMode(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none">
+                                        <option value="top-bottom">Image Top, Chat Bottom (Default)</option>
+                                        <option value="left-right">Image Left, Chat Right</option>
+                                        <option value="right-left">Image Right, Chat Left</option>
                                     </select>
                                 </div>
+                                
                                 <div className="space-y-3">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2"><Type className="w-3 h-3" /> Text Model</label>
@@ -1268,7 +1144,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2"><ImageIcon className="w-3 h-3" /> Image Model</label>
+                                        <label className="block text-xs font-semibold text-slate-400 uppercase mb-2 flex items-center gap-2"><LucideImage className="w-3 h-3" /> Image Model</label>
                                         <select value={selectedImageModel} onChange={(e) => setSelectedImageModel(e.target.value)} className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-sm text-white outline-none">
                                             {availableImageModels.map(m => <option key={m.id} value={m.id}>{m.displayName}</option>)}
                                         </select>
@@ -1278,7 +1154,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                         </div>
                     )}
 
-                    {/* Dossier Modal */}
+                    {/* Popout Dossier Modal */}
                     {showDossier && personaProfile && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -1287,22 +1163,26 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                         <Fingerprint className="w-5 h-5 text-indigo-400" /> Target Dossier: {personaProfile.core_identity.first_name}
                                     </h2>
                                     <div className="flex gap-2">
-                                        <button onClick={handleExportPersona} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><FileDown className="w-4 h-4" /> Export (.txt)</button>
-                                        <button onClick={() => setShowDossier(false)} className="bg-slate-700 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors"><X className="w-4 h-4" /></button>
+                                        <button onClick={handleExportPersona} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+                                            <FileDown className="w-4 h-4" /> Export (.txt)
+                                        </button>
+                                        <button onClick={() => setShowDossier(false)} className="bg-slate-700 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors"><X className="w-4 h-4"/></button>
                                     </div>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-700 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-900 to-slate-950">
                                     <div className="space-y-6">
+                                        {/* Identity Header */}
                                         <div className="bg-gradient-to-br from-indigo-900/40 to-slate-800/40 p-6 rounded-xl border border-indigo-500/20 text-center shadow-inner">
-                                            <div className="w-20 h-20 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-indigo-500/50 shadow-lg overflow-hidden">
+                                            <div className="w-20 h-20 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-indigo-500/50 shadow-lg">
                                                 {generatedImage ? <img src={generatedImage} className="w-full h-full object-cover rounded-full" /> : <User className="w-10 h-10 text-slate-400" />}
                                             </div>
-                                            <h3 className="text-2xl font-bold text-white mb-2">{personaProfile.core_identity.first_name}</h3>
+                                            <h3 className="text-2xl font-bold text-white mb-2 leading-tight">{personaProfile.core_identity.first_name}</h3>
                                             <p className="text-sm font-medium text-indigo-300 mb-3">{personaProfile.psychological_profile.dominant_vibe.split('(')[0]}</p>
-                                            <p className="text-xs text-slate-400 bg-black/40 inline-block px-3 py-1.5 rounded-full border border-white/5">{personaProfile.core_identity.age_bracket} &bull; {personaProfile.background_and_lifestyle.current_profession.split('/')[0]}</p>
+                                            <p className="text-xs text-slate-400 bg-black/40 inline-block px-3 py-1.5 rounded-full border border-white/5">{personaProfile.core_identity.age_bracket} • {personaProfile.background_and_lifestyle.current_profession.split('/')[0]}</p>
                                         </div>
+
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-sm">
                                                 <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><Heart className="w-3.5 h-3.5 text-pink-400" /> Identity & Romance</h4>
                                                 <ul className="text-xs text-slate-300 space-y-2">
                                                     <li><span className="text-slate-500">Orientation:</span> {personaProfile.core_identity.sexual_orientation} / {personaProfile.core_identity.romantic_orientation}</li>
@@ -1312,7 +1192,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <li><span className="text-slate-500">Love Lang:</span> {personaProfile.psychological_profile.core_love_language}</li>
                                                 </ul>
                                             </div>
-                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+
+                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-sm">
                                                 <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><User className="w-3.5 h-3.5 text-emerald-400" /> Physicality</h4>
                                                 <ul className="text-xs text-slate-300 space-y-2">
                                                     <li><span className="text-slate-500">Height:</span> {personaProfile.physique_macro.height}</li>
@@ -1322,7 +1203,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <li><span className="text-slate-500">Grooming:</span> {personaProfile.physical_and_aesthetic.grooming_habit}</li>
                                                 </ul>
                                             </div>
-                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+
+                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-sm">
                                                 <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><MessageSquare className="w-3.5 h-3.5 text-blue-400" /> Chat Style</h4>
                                                 <ul className="text-xs text-slate-300 space-y-2">
                                                     <li><span className="text-slate-500">Habit:</span> {personaProfile.communication_style.texting_habit}</li>
@@ -1331,7 +1213,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <li><span className="text-slate-500">Humor:</span> {personaProfile.communication_style.humor_style}</li>
                                                 </ul>
                                             </div>
-                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+
+                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-sm">
                                                 <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><Layers className="w-3.5 h-3.5 text-indigo-400" /> Background</h4>
                                                 <ul className="text-xs text-slate-300 space-y-2">
                                                     <li><span className="text-slate-500">Class:</span> {personaProfile.background_and_lifestyle.socioeconomic_background}</li>
@@ -1339,7 +1222,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <li><span className="text-slate-500">Social Battery:</span> {personaProfile.background_and_lifestyle.social_battery}</li>
                                                 </ul>
                                             </div>
-                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 md:col-span-2">
+                                            
+                                            <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 shadow-sm md:col-span-2">
                                                 <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><Flame className="w-3.5 h-3.5 text-orange-400" /> Intimacy Dynamics</h4>
                                                 <ul className="text-xs text-slate-300 space-y-2 grid grid-cols-1 md:grid-cols-2 gap-x-4">
                                                     <li><span className="text-slate-500">Dynamic:</span> {personaProfile.intimacy_dynamics.power_dynamic}</li>
@@ -1349,7 +1233,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <li className="md:col-span-2"><span className="text-slate-500">Kinks:</span> {personaProfile.intimacy_dynamics.kinks_interests}</li>
                                                 </ul>
                                             </div>
-                                            <div className="bg-red-900/10 rounded-xl p-4 border border-red-900/40 md:col-span-2">
+
+                                            <div className="bg-red-900/10 rounded-xl p-4 border border-red-900/40 shadow-sm md:col-span-2">
                                                 <h4 className="text-[11px] font-bold text-red-400 uppercase mb-3 flex items-center gap-1.5 border-b border-red-900/30 pb-2"><Lock className="w-3.5 h-3.5" /> Hidden Vulnerabilities</h4>
                                                 <ul className="text-xs text-red-200/90 space-y-3 italic">
                                                     <li><span className="text-red-400/60 not-italic font-bold block mb-0.5">Fatal Flaw</span> {personaProfile.psychological_profile.fatal_flaw}</li>
@@ -1368,21 +1253,23 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                     {showHistory && (
                         <div className="absolute inset-y-0 left-0 w-full sm:w-80 bg-slate-900/95 backdrop-blur-xl border-r border-slate-700 z-40 flex flex-col shadow-2xl animate-in slide-in-from-left-4">
                             <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-                                <h2 className="font-bold text-slate-200">History</h2>
-                                <button onClick={() => setShowHistory(false)} className="p-1 hover:bg-slate-700 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
+                                <h2 className="font-bold text-slate-200">History Log</h2>
+                                <button onClick={() => setShowHistory(false)} className="p-1 hover:bg-slate-700 rounded-full">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {generationHistory.length === 0 ? (
-                                    <p className="text-slate-500 text-sm text-center italic mt-10">No history yet.</p>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-slate-700">
+                                {historyLog.length === 0 ? (
+                                    <p className="text-center text-slate-500 text-sm mt-10">No saved targets.</p>
                                 ) : (
-                                    generationHistory.map((item) => (
+                                    historyLog.map((item) => (
                                         <div key={item.id} onClick={() => restoreHistoryItem(item)} className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700 hover:border-indigo-500 cursor-pointer transition-all group flex h-24 shadow-sm">
                                             <div className="w-24 bg-slate-950 flex-shrink-0 relative">
-                                                {item.image ? <img src={(visualStyle === 'photo' && item.imagePhoto) || (visualStyle === '3d' && item.image3d) || item.image} alt="Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" /> : <User className="w-8 h-8 text-slate-600 m-auto mt-8" />}
+                                                {item.image ? <img src={item.image} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" /> : <User className="w-8 h-8 text-slate-600 m-auto mt-8"/>}
                                             </div>
                                             <div className="p-3 flex-1 min-w-0 flex flex-col justify-center">
-                                                <p className="font-bold text-sm text-slate-200 truncate">{item.profile?.core_identity?.first_name || 'Unknown'}</p>
-                                                <p className="text-[11px] text-indigo-400 truncate mb-1">{item.profile?.psychological_profile?.dominant_vibe?.split('(')[0] || ''}</p>
+                                                <p className="font-bold text-sm text-slate-200 truncate">{item.profile?.core_identity.first_name || 'Unknown Target'}</p>
+                                                <p className="text-[11px] text-indigo-400 truncate mb-1">{item.profile?.psychological_profile.dominant_vibe.split('(')[0]}</p>
                                                 <p className="text-[10px] text-slate-500 mt-auto">{item.timestamp}</p>
                                             </div>
                                         </div>
@@ -1392,26 +1279,36 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                         </div>
                     )}
 
-                    {/* Main Content */}
-                    <div className={`flex flex-1 min-h-0 ${layout === 'chat-bottom' ? 'flex-col' : 'flex-row'}`}>
-
-                        {/* Image Pane */}
-                        <div className={`flex-1 min-h-0 min-w-0 flex flex-col bg-slate-950 relative overflow-hidden ${layout === 'chat-left' ? 'order-2' : 'order-1'}`}>
-                            <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+                    {/* Main Workspace Split based on Layout Mode */}
+                    <div className={`flex-1 flex min-h-0 ${
+                        layoutMode === 'top-bottom' ? 'flex-col' : 
+                        layoutMode === 'left-right' ? 'flex-col md:flex-row' : 
+                        'flex-col md:flex-row-reverse'
+                    }`}>
+                        
+                        {/* IMAGE PANE */}
+                        <div className={`flex flex-col min-h-0 bg-slate-950 relative ${
+                            layoutMode === 'top-bottom' ? 'flex-1' : 'flex-1 md:w-1/2 md:flex-none'
+                        } ${layoutMode === 'left-right' ? 'md:border-r border-slate-800' : layoutMode === 'right-left' ? 'md:border-l border-slate-800' : ''}`}>
+                            <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative min-h-0 min-w-0">
                                 {generatedImage ? (
                                     <div className="relative group h-full w-full flex items-center justify-center">
-                                        <div className="relative max-h-full max-w-full cursor-zoom-in shadow-2xl rounded-xl overflow-hidden border border-slate-800 bg-slate-900 transition-transform active:scale-[0.99]" onClick={() => setIsFullScreen(true)}>
+                                        <div className="relative max-h-full max-w-full cursor-zoom-in shadow-2xl rounded-xl overflow-hidden border border-slate-800 bg-slate-900 transition-transform active:scale-[0.99] flex items-center justify-center" onClick={() => setIsFullScreen(true)}>
                                             <img src={generatedImage} alt="Generated" className="max-h-full max-w-full object-contain" />
                                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
-                                                <div className="bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1"><Maximize2 className="w-3 h-3" /> Full Screen</div>
+                                                <div className="bg-black/60 backdrop-blur px-3 py-1 rounded-full text-xs font-medium text-white flex items-center gap-1">
+                                                    <Maximize2 className="w-3 h-3" /> <span>Full Screen</span>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="absolute top-4 left-4 z-10 flex gap-2">
-                                            <button onClick={downloadImage} className="bg-black/50 hover:bg-black/70 backdrop-blur text-white p-2 rounded-lg border border-white/10 shadow-lg" title="Download"><Download className="w-4 h-4" /></button>
+                                            <button onClick={downloadImg} className="bg-black/50 hover:bg-black/70 backdrop-blur text-white p-2 rounded-lg border border-white/10 shadow-lg" title="Download Image"><Download className="w-4 h-4" /></button>
                                             <button onClick={() => setGeneratedImage(null)} className="bg-black/50 hover:bg-red-500/70 backdrop-blur text-white p-2 rounded-lg border border-white/10 shadow-lg" title="Clear Image"><Eraser className="w-4 h-4" /></button>
                                         </div>
                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-                                            <span className="bg-black/50 backdrop-blur text-slate-300 text-[10px] px-2 py-1 rounded-full border border-white/10">Editing Enabled</span>
+                                            <span className="bg-black/50 backdrop-blur text-slate-300 text-[10px] px-2 py-1 rounded-full border border-white/10">
+                                                {generatedImage ? "Editing Enabled" : "Ready for New Image"}
+                                            </span>
                                         </div>
                                     </div>
                                 ) : (
@@ -1424,38 +1321,43 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                     <div className="absolute top-4 left-4 right-4 mx-auto max-w-md bg-red-900/90 text-red-100 px-4 py-3 rounded-lg flex items-start gap-3 backdrop-blur shadow-xl text-sm z-20 border border-red-700 animate-in slide-in-from-top-4">
                                         <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                                         <span>{error}</span>
-                                        <button onClick={() => setError(null)} className="ml-auto hover:bg-red-800 rounded p-1"><X className="w-4 h-4" /></button>
+                                        <button onClick={() => setError(null)} className="ml-auto hover:bg-red-800 rounded p-1"><X className="w-4 h-4"/></button>
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Chat/Controls Pane */}
-                        <div className={`flex flex-col bg-slate-900 z-20 ${layout === 'chat-left' ? 'order-1' : 'order-2'} ${layout === 'chat-bottom' ? 'flex-none h-[40vh] min-h-[200px] border-t border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]' : `flex-none w-[40%] min-w-[280px] max-w-[500px] h-full ${layout === 'chat-left' ? 'border-r border-slate-700' : 'border-l border-slate-700'}`}`}>
-
-                            {/* Tab Bar + Roll Target */}
-                            <div className={`flex-none bg-slate-900 border-b border-slate-800 px-3 py-2.5 flex justify-between items-center z-20 shadow-sm ${layout === 'chat-bottom' ? 'border-t' : ''}`}>
+                        {/* CHAT / CONTROLS PANE */}
+                        <div className={`flex flex-col min-h-0 bg-slate-900 relative z-20 ${
+                            layoutMode === 'top-bottom' 
+                                ? 'h-[40%] flex-none shadow-[0_-4px_20px_rgba(0,0,0,0.5)]' 
+                                : 'h-[40%] md:h-auto md:w-1/2 md:flex-none shadow-[0_-4px_20px_rgba(0,0,0,0.5)] md:shadow-2xl'
+                        }`}>
+                            
+                            {/* MIDDLE: Mode Switcher & Dice Randomizer */}
+                            <div className={`flex-none bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex justify-between items-center z-20 shadow-sm ${layoutMode === 'top-bottom' ? 'border-t' : ''}`}>
                                 <div className="flex bg-slate-800/80 rounded-lg p-1 border border-slate-700/50">
-                                    <button onClick={() => setActiveMainTab('visualizer')} className={`px-3 py-2 text-[12px] font-bold rounded-md flex items-center gap-1.5 transition-all ${activeMainTab === 'visualizer' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
-                                        <Palette className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Visualizer</span>
+                                    <button onClick={() => setActiveMainTab('visualizer')} className={`px-3 md:px-5 py-2 text-[13px] font-bold rounded-md flex items-center gap-2 transition-all ${activeMainTab === 'visualizer' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
+                                        <Palette className="w-4 h-4" /> <span className="hidden md:inline">Visualizer</span>
                                     </button>
-                                    <button onClick={() => setActiveMainTab('chat')} disabled={!personaProfile} className={`px-3 py-2 text-[12px] font-bold rounded-md flex items-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${activeMainTab === 'chat' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
-                                        <MessageCircle className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Chat with {personaProfile?.core_identity?.first_name || 'Target'}</span>
+                                    <button onClick={() => setActiveMainTab('chat')} disabled={!personaProfile} className={`px-3 md:px-5 py-2 text-[13px] font-bold rounded-md flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${activeMainTab === 'chat' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
+                                        <MessageCircle className="w-4 h-4" /> <span className="hidden md:inline">Chat with {personaProfile?.core_identity.first_name || 'Target'}</span>
                                     </button>
                                 </div>
-                                <button onClick={generateNewBase} disabled={isGlobalRolling || isVisImageLoading || isVisTextLoading || isChatTyping} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95">
-                                    {isGlobalRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4 animate-bounce" />}
+                                <button onClick={generateNewBase} disabled={isGlobalRolling || isVisImageLoading || isChatTyping || isLoadingModels || !selectedTextModel || !selectedImageModel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95">
+                                    {isGlobalRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-5 h-5 animate-bounce" />}
                                     <span className="hidden sm:inline">Roll Target</span>
+                                    <span className="sm:hidden">Roll</span>
                                 </button>
                             </div>
 
-                            {/* Tab Content */}
+                            {/* BOTTOM: Chat Workspace Inner */}
                             <div className="flex-1 flex flex-col relative min-h-0">
-
-                                {/* VISUALIZER TAB */}
+                                
+                                {/* VISUALIZER CHAT TAB */}
                                 {activeMainTab === 'visualizer' && (
                                     <div className="absolute inset-0 flex flex-col bg-slate-900 animate-in fade-in duration-200">
-                                        <div className="px-4 py-2 bg-slate-800/80 border-b border-slate-700 flex items-center gap-2 backdrop-blur-sm flex-none">
+                                        <div className="px-4 py-2 bg-slate-800/80 border-b border-slate-700 flex items-center gap-2 backdrop-blur-sm shadow-sm flex-none">
                                             <MessageSquare className="w-4 h-4 text-slate-400" />
                                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Detail Editor</span>
                                         </div>
@@ -1465,9 +1367,9 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     {msg.type === 'prompt' ? (
                                                         <div className="bg-slate-800/80 border border-indigo-500/30 rounded-lg p-3 shadow-sm w-full max-w-[90%]">
                                                             <div className="flex justify-between items-center mb-2 border-b border-slate-700/50 pb-2">
-                                                                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1"><Sparkles className="w-3 h-3" /> Generated Prompt</span>
-                                                                <button onClick={() => copyText(msg.text, idx)} className="text-slate-400 hover:text-white flex items-center gap-1 text-[10px] bg-slate-700/50 px-2 py-1 rounded">
-                                                                    {copyFeedback[idx] ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copyFeedback[idx] ? "Copied" : "Copy"}
+                                                                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1"><Sparkles className="w-3 h-3" /> Image Prompt</span>
+                                                                <button onClick={() => copyTextToClipboard(msg.text, `vis-${idx}`)} className="text-slate-400 hover:text-white flex items-center gap-1 text-[10px] bg-slate-700/50 px-2 py-1 rounded">
+                                                                    {copyFeedback[`vis-${idx}`] ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />} {copyFeedback[`vis-${idx}`] ? "Copied" : "Copy"}
                                                                 </button>
                                                             </div>
                                                             <p className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed opacity-90">{msg.text}</p>
@@ -1477,7 +1379,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                             <div className="flex items-start gap-2 mb-2">
                                                                 <ShieldAlert className="w-4 h-4 text-orange-400 mt-0.5" />
                                                                 <div>
-                                                                    <h4 className="text-xs font-bold text-orange-200">Safety Filter Triggered</h4>
+                                                                    <h4 className="text-xs font-bold text-orange-200">Safety Filter Hit</h4>
                                                                     <p className="text-[10px] text-orange-200/80">Proposed safe version:</p>
                                                                 </div>
                                                             </div>
@@ -1485,7 +1387,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                             <button onClick={() => handleRetrySafeVis(msg.proposedPrompt)} className="bg-orange-600 hover:bg-orange-500 text-white text-[10px] font-bold py-1.5 px-3 rounded flex items-center gap-1 w-fit">Retry Safe <ArrowRight className="w-3 h-3" /></button>
                                                         </div>
                                                     ) : (
-                                                        <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-sm'}`}>
+                                                        <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-sm' : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-sm'}`}>
                                                             {msg.text}
                                                         </div>
                                                     )}
@@ -1493,9 +1395,9 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                             ))}
                                             {(isVisTextLoading || isVisImageLoading || isVisSanitizing) && (
                                                 <div className="flex justify-start">
-                                                    <div className="bg-slate-800 border border-slate-700 text-slate-400 px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-2">
+                                                    <div className="bg-slate-800 border border-slate-700 text-slate-400 px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-2 shadow-sm">
                                                         {isVisSanitizing ? <ShieldAlert className="w-4 h-4 animate-pulse text-orange-500" /> : isVisTextLoading ? <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" /> : <ImageIcon className="w-4 h-4 animate-pulse text-purple-500" />}
-                                                        <span className="text-xs font-medium">{isVisSanitizing ? "Rewriting prompt..." : isVisTextLoading ? "Refining prompt..." : `Rendering with ${selectedImageModel}...`}</span>
+                                                        <span className="text-xs font-medium">{isVisSanitizing ? "Rewriting prompt..." : isVisTextLoading ? "Refining prompt..." : "Rendering image..."}</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -1503,8 +1405,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                         </div>
                                         <div className="p-3.5 bg-slate-800 border-t border-slate-700 flex-none">
                                             <form onSubmit={handleVisChatSubmit} className="flex gap-2">
-                                                <input type="text" value={visUserInput} onChange={(e) => setVisUserInput(e.target.value)} placeholder={generatedImage ? "Describe modification (e.g., 'Make his hair silver')" : "Type details then click Roll, or just Roll for a surprise"} className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-all text-sm disabled:opacity-50 shadow-inner" disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing} />
-                                                <button type="submit" disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing || !visUserInput.trim()} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 rounded-lg flex items-center justify-center shadow-md"><Send className="w-5 h-5" /></button>
+                                                <input type="text" value={visUserInput} onChange={(e) => setVisUserInput(e.target.value)} placeholder={generatedImage ? "Describe modification (e.g., 'Make his hair silver')" : "Waiting for generated image..."} disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing || !generatedImage || !selectedTextModel || !selectedImageModel} className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-all text-[15px] disabled:opacity-50 shadow-inner" />
+                                                <button type="submit" disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing || !visUserInput.trim() || !selectedTextModel || !selectedImageModel} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 rounded-lg flex items-center justify-center shadow-md"><Send className="w-5 h-5" /></button>
                                             </form>
                                         </div>
                                     </div>
@@ -1519,10 +1421,10 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center border border-slate-600 overflow-hidden shadow-sm">
                                                         {generatedImage ? <img src={generatedImage} className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-slate-400" />}
                                                     </div>
-                                                    {personaProfile && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-slate-800 rounded-full"></div>}
+                                                    {personaProfile && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-slate-800 rounded-full shadow"></div>}
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-sm font-bold text-white leading-none">{personaProfile?.core_identity?.first_name || 'Target'}</h3>
+                                                    <h3 className="text-sm font-bold text-white leading-none">{personaProfile?.core_identity.first_name || 'Target'}</h3>
                                                     <p className="text-[10px] text-purple-300 font-medium">{isChatTyping ? "Typing..." : "Active now"}</p>
                                                 </div>
                                             </div>
@@ -1532,7 +1434,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                             <div className="space-y-4">
                                                 {error && activeMainTab === 'chat' && (
                                                     <div className="flex justify-center mb-4">
-                                                        <span className="bg-red-900/80 text-red-200 text-xs px-3 py-1 rounded shadow-sm flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {error}</span>
+                                                        <span className="bg-red-900/80 text-red-200 text-xs px-3 py-1 rounded shadow-sm flex items-center gap-1"><AlertCircle className="w-3 h-3"/> {error}</span>
                                                     </div>
                                                 )}
                                                 {roleplayUiChat.map((msg) => {
@@ -1554,6 +1456,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                         </div>
                                                     );
                                                 })}
+                                                
                                                 {isChatTyping && (
                                                     <div className="flex justify-start chat-bubble">
                                                         <div className="w-6 h-6 bg-slate-800 rounded-full flex-shrink-0 mr-2 mt-auto mb-1 border border-slate-700 overflow-hidden">
@@ -1577,13 +1480,13 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                                     <button onClick={() => setPendingImage(null)} className="p-1 hover:bg-slate-700 rounded-full text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
                                                 </div>
                                             )}
-                                            <form onSubmit={handleRpSubmit} className="flex gap-2 relative w-full">
+                                            <form onSubmit={handleRpSubmit} className="flex gap-2 relative max-w-4xl mx-auto w-full">
                                                 <div className="relative flex-1 flex items-center">
-                                                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!personaProfile || isChatTyping} className="absolute left-2 p-2 text-slate-400 hover:text-purple-400 disabled:opacity-50 transition-colors z-10"><Paperclip className="w-5 h-5" /></button>
+                                                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!personaProfile || isChatTyping || !selectedTextModel || !selectedImageModel} className="absolute left-2 p-2 text-slate-400 hover:text-purple-400 disabled:opacity-50 transition-colors z-10"><Paperclip className="w-5 h-5" /></button>
                                                     <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-                                                    <input type="text" ref={rpInputRef} value={roleplayUserInput} onChange={(e) => setRoleplayUserInput(e.target.value)} placeholder={personaProfile ? "Type a message..." : "Roll target to chat"} disabled={!personaProfile || isChatTyping} className="w-full bg-slate-800 text-white border border-slate-700 rounded-full pl-12 pr-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-[15px] disabled:opacity-50 shadow-inner" />
+                                                    <input type="text" ref={rpInputRef} value={roleplayUserInput} onChange={(e) => setRoleplayUserInput(e.target.value)} placeholder={personaProfile ? "Type a message..." : "Roll target to chat"} disabled={!personaProfile || isChatTyping || !selectedTextModel || !selectedImageModel} className="w-full bg-slate-800 text-white border border-slate-700 rounded-full pl-12 pr-12 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-[15px] disabled:opacity-50 shadow-inner" />
                                                 </div>
-                                                <button type="submit" disabled={!personaProfile || isChatTyping || (!roleplayUserInput.trim() && !pendingImage)} className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white aspect-square rounded-full flex items-center justify-center px-4 shadow-md transition-colors"><Send className="w-5 h-5 ml-0.5" /></button>
+                                                <button type="submit" disabled={!personaProfile || isChatTyping || (!roleplayUserInput.trim() && !pendingImage) || !selectedTextModel || !selectedImageModel} className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white aspect-square rounded-full flex items-center justify-center px-4 shadow-md transition-colors"><Send className="w-5 h-5 ml-0.5" /></button>
                                             </form>
                                         </div>
                                     </div>
@@ -1592,15 +1495,15 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                         </div>
                     </div>
 
-                    {/* Full Screen Modal */}
+                    {/* FULL SCREEN MODAL */}
                     {isFullScreen && generatedImage && (
                         <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col animate-in fade-in duration-200">
                             <div className="absolute top-4 right-4 flex gap-4 z-50">
-                                <button onClick={downloadImage} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md"><Download className="w-6 h-6" /></button>
+                                <button onClick={downloadImg} className="bg-white/10 hover:bg-white/20 text-white p-3 rounded-full backdrop-blur-md"><Download className="w-6 h-6" /></button>
                                 <button onClick={() => setIsFullScreen(false)} className="bg-white/10 hover:bg-red-500/80 text-white p-3 rounded-full backdrop-blur-md"><X className="w-6 h-6" /></button>
                             </div>
                             <div className="flex-1 p-4 flex items-center justify-center overflow-hidden" onClick={() => setIsFullScreen(false)}>
-                                <img src={generatedImage} alt="Full Screen" className="max-w-full max-h-full object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+                                <img src={generatedImage} className="max-w-full max-h-full object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
                             </div>
                         </div>
                     )}
@@ -1609,7 +1512,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
         };
 
         const root = createRoot(document.getElementById('root'));
-        root.render(<AdonisEngineApp />);
+        root.render(<AdonisStudioApp />);
     </script>
 </body>
 </html>

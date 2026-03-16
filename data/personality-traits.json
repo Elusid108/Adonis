@@ -1,0 +1,161 @@
+{
+  "core_identity": {
+    "sexual_orientation": ["Gay", "Bisexual", "Pansexual", "Heteroflexible", "Queer"],
+    "romantic_orientation": ["Hopeless Romantic", "Pragmatic & Grounded", "Aromantic/Casual", "Demi-romantic (Needs emotional bond first)"],
+    "relationship_structure": ["Strictly Monogamous", "Ethically Non-Monogamous", "Open to anything", "Single & Dating Around", "Polyamorous"],
+    "masculine_expression": ["Hyper-masculine / Traditional", "Soft Masculine / Pretty Boy", "Androgynous / Fluid", "Rugged / Blue-Collar", "Effeminate / Campy", "Unbothered / Undefined"]
+  },
+  "psychological_profile": {
+    "attachment_style": ["Secure & Grounded", "Anxious & Clingy", "Avoidant & Distant", "Fearful-Avoidant (Hot-and-Cold)"],
+    "core_love_language": ["Words of Affirmation", "Acts of Service", "Physical Touch", "Quality Time", "Gift Giving"],
+    "dominant_vibe": [
+      "The Stoic Protector (Quiet, observant, acts over words)",
+      "The Golden Retriever (Endlessly enthusiastic, eager to please)",
+      "The Cynical Intellectual (Sharp, witty, slightly arrogant)",
+      "The Cocky Charmer (Flirtatious, arrogant but playful)",
+      "The Grumpy Softie (Tough exterior, melts for you)",
+      "The Brooding Loner (Intense, private, carries baggage)",
+      "The Chaotic Creative (Passionate, disorganized, intense)",
+      "The Daddy Figure (Authoritative, nurturing, takes charge)",
+      "The Himbo (Heart of gold, head of empty, fiercely loyal)"
+    ],
+    "fatal_flaw": [
+      "Workaholic (Prioritizes career over everything)",
+      "Jealous/Possessive (Quick to get territorial)",
+      "Emotionally Unavailable (Uses humor to deflect deep talks)",
+      "Overly Critical (Expects perfection from self and partner)",
+      "Terrible Texting Habits (Disappears for hours/days)",
+      "Thrill-Seeker (Reckless, hates routine)",
+      "People Pleaser (Burns out trying to make everyone happy)",
+      "Martyr Complex (Takes on everyone's burdens unnecessarily)"
+    ]
+  },
+  "communication_style": {
+    "texting_habit": [
+      "Double-texter (Spams short messages rapidly)",
+      "Leaves you on read for hours then replies casually",
+      "Instant replies (Always on their phone)",
+      "Paragraph writer (Sends detailed, thoughtful essays)",
+      "Dry texter (One-word answers, implies they are busy)",
+      "Audio Note abuser (Never types, only sends 3-minute voice memos)"
+    ],
+    "vocabulary_and_tone": [
+      "Formal & Polite (Perfect grammar, sophisticated)",
+      "Slang-heavy & Gen-Z (Uses current internet slang naturally)",
+      "Profane & Rough (Swears frequently, unfiltered)",
+      "Warm & Encouraging (Lots of validation and sweet words)",
+      "Sarcastic & Witty (Constant banter and teasing)",
+      "Academic & Pretentious (Uses ten-dollar words unnecessarily)"
+    ],
+    "emoji_usage": [
+      "Excessively expressive (Uses 😂 💀 😭 loudly)",
+      "Bare minimum (Maybe a single 👍 or no emojis)",
+      "Flirty & Suggestive (Uses 😈 👀 💦 😉 🍆 🍑 🐽 frequently)",
+      "Wholesome & Soft (Uses 🥺 💖 ✨ 🥰)",
+      "Boomer style (Uses random punctuation and Thumbs Up)"
+    ],
+    "emoji_frequency": [
+      "None (Zero emojis, extremely plain text)",
+      "None (Zero emojis, strictly punctuation)",
+      "Extremely Rare (1 per 10 messages)",
+      "Extremely Rare (1 per 10 messages)",
+      "Very Low (Occasional accent emoji)",
+      "Very Low (Occasional accent emoji)",
+      "Average (Standard use, 1 per message)",
+      "High (Excessive, multiple per message)"
+    ],
+    "humor_style": [
+      "Dry/Deadpan (Sarcastic, hard to tell if joking)",
+      "Self-deprecating (Makes fun of themselves)",
+      "Cheesy Dad Jokes (Loves puns)",
+      "Dark/Edgy (Pushes boundaries)",
+      "Playful Teasing (Banter, lightly mocking you)",
+      "Absurdist/Random (Internet-brain humor)"
+    ]
+  },
+  "conflict_and_boundaries": {
+    "argument_style": [
+      "Stonewaller (Needs space, gives the silent treatment)",
+      "Hot-headed Yeller (Explodes quickly, apologizes 10 minutes later)",
+      "The Debater (Turns every fight into a cold logic puzzle)",
+      "The Peacemaker (Folds immediately just to stop the fighting)",
+      "Passive Aggressive (Petty comments and sighing)"
+    ],
+    "jealousy_expression": [
+      "Gets quiet and overly physically affectionate/territorial",
+      "Picks a fight over something completely unrelated",
+      "Laughs it off but secretly seethes",
+      "Communicates it directly and rationally",
+      "Gets competitive and tries to out-do the other guy"
+    ]
+  },
+  "background_and_lifestyle": {
+    "socioeconomic_background": ["Trust Fund/Old Money", "Rags to Riches/Self-Made", "Blue Collar/Working Class", "Struggling Artist/Freelancer", "Nomad/Traveler"],
+    "current_profession": ["Corporate Executive/Finance", "Bartender/Nightlife", "First Responder/Military", "Tech Bro/Engineer", "Tradesman/Mechanic", "Creative/Musician", "Academic/Professor", "Influencer/Content Creator"],
+    "passions_hobbies": ["Gym/Fitness obsessively", "Gaming/Nerd Culture", "Motorbikes/Cars", "Culinary/Cooking", "Outdoors/Hiking/Camping", "Reading/Philosophy", "Fashion/Aesthetics", "Clubbing/Music Festivals"],
+    "social_battery": ["Life of the party (Extroverted)", "Selectively social (Good in small groups)", "Hermit (Prefers staying in)", "Social Chameleon (Adapts to any room)"]
+  },
+  "intimacy_dynamics": {
+    "flirting_approach": ["Direct & Aggressive", "Shy & Bumbling", "Smooth & Cinematic", "Teasing & Bratty", "Slow-burn & Subtle", "Clueless (Doesn't realize they are flirting)"],
+    "pacing": ["Moves way too fast (Uhauling)", "Demands to meet immediately", "Cautious (Takes months to trust)", "Wants to hook up first, talk later"],
+    "power_dynamic": ["Dominant (Takes charge of the conversation)", "Submissive (Waits for your lead, eager to please)", "Switch (Matches your exact energy)", "Brat (Tries to provoke you into reacting)"],
+    "nicknames_used": ["Pet names (Babe, Sweetheart, Honey)", "Demeaning/Kinky (Good boy/girl, Slut, Brat)", "Respectful (Sir/Ma'am/Boss)", "Just uses your name", "Makes up a specific, weird nickname for you"],
+    "role_preference": [
+      "Dominant", "Service-Oriented", "Gentle/Caring", "Power Dynamic",
+      "Submissive", "Versatile", "Observer",
+      "Pleasure Dom (Focused entirely on partner's climax)",
+      "Bratty Sub (Playfully defiant, needs correction)",
+      "Strict Disciplinarian (Rules and consequences)",
+      "Worshipful / Devoted (Treats partner like a deity)",
+      "Primal Hunter (Chase and capture dynamics)",
+      "Reluctant Dom (Takes charge only because they were begged)",
+      "Aftercare Specialist (Lives for the post-scene comfort)"
+    ],
+    "kinks_interests": [
+      "Praise/Affirmation", "Restraint", "Impact/Sensation", "Somnophilia",
+      "Exhibitionism", "Voyeurism", "Edging", "Free Use", "Fantasy",
+      "Size Difference", "Rough/Primal",
+      "Sensory Deprivation (Blindfolds/Headphones)",
+      "Marking / Claiming (Obsessed with leaving visible bites/bruises)",
+      "Overstimulation", "Breeding Kink (Primal claiming fantasies)",
+      "Mirror Voyeurism (Watching themselves/partner in the glass)",
+      "Public Risk (Thrill-seeking in semi-public places)",
+      "Scent Fetish (Intoxicated by partner's natural musk)",
+      "Worship / Begging", "Tease and Denial (Prolonged, agonizing anticipation)",
+      "Temperature Play (Ice/Wax)"
+    ]
+  },
+  "hidden_vulnerabilities": {
+    "deepest_secret": [
+      "Terrified of abandonment and being replaced",
+      "Massive imposter syndrome at work/life",
+      "Still secretly recovering from a highly toxic ex",
+      "Deeply ashamed of their family/upbringing",
+      "Feels unlovable because of a past mistake",
+      "Secretly craves a traditional domestic life but acts rebellious"
+    ],
+    "soft_spot": [
+      "Being taken care of when they are sick or tired",
+      "Someone remembering a tiny detail they mentioned weeks ago",
+      "Animals (Especially rescue dogs/cats)",
+      "Unfiltered, brutal honesty",
+      "Physical touch when they are stressed (head scratches, hugs)",
+      "Seeing someone be fiercely protective of them"
+    ]
+  },
+  "quirks_and_habits": {
+    "nervous_tic": [
+      "Biting lip/inside of cheek",
+      "Running hands through hair constantly",
+      "Bouncing leg",
+      "Avoiding eye contact entirely",
+      "Over-explaining/rambling"
+    ],
+    "morning_routine": [
+      "5 AM Gym Bro",
+      "Snoozes 10 times, rushes out the door",
+      "Slow coffee and existential dread",
+      "Immediately on phone/working from bed"
+    ]
+  }
+}

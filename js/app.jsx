@@ -42,10 +42,51 @@ function fillTemplate(template, profile) {
 // --- Style Helper ---
 
 const applyStyleToPrompt = (promptText, style, styleSections) => {
+    const text = promptText ?? '';
     const section = styleSections[style];
+    if (!section) return text;
     const styleRegex = /\[Style[^\]]*\][\s\S]*?(?=\n\[|\n\s*$)/;
-    return promptText.replace(styleRegex, section) || section + '\n\n' + promptText;
+    if (styleRegex.test(text)) {
+        return text.replace(styleRegex, section);
+    }
+    return section + '\n\n' + text;
 };
+
+function buildPhysicalGroundTruthBlock(profile) {
+    if (!profile) return '';
+    const ci = profile.core_identity;
+    const pa = profile.physical_and_aesthetic;
+    const pm = profile.physique_macro;
+    const mp = profile.macro_physique;
+    const ff = profile.facial_features;
+    const pmicro = profile.physique_micro;
+    const md = profile.micro_details;
+    const lines = [];
+    lines.push(`Name: ${ci?.first_name ?? '—'}`);
+    if (ci?.age_bracket) lines.push(`Age bracket: ${ci.age_bracket}`);
+    lines.push(`Body type (summary): ${pa?.body_type ?? '—'}`);
+    lines.push(`Style / vibe: ${pa?.style_vibe ?? '—'}; Grooming: ${pa?.grooming_habit ?? '—'}`);
+    lines.push(`Height band: ${pm?.height ?? '—'}`);
+    lines.push(`Body composition: ${pm?.body_composition ?? '—'}`);
+    lines.push(`Muscle definition: ${pm?.muscle_definition ?? '—'}`);
+    lines.push(`Shoulder-to-waist: ${pm?.shoulder_to_waist_ratio ?? '—'}`);
+    lines.push(`Hands/feet: ${pm?.hands_and_feet ?? '—'}`);
+    lines.push(`Macro — height category: ${mp?.height_category ?? '—'}`);
+    lines.push(`Macro — skeletal frame: ${mp?.skeletal_frame ?? '—'}`);
+    lines.push(`Macro — muscle mass: ${mp?.muscle_mass ?? '—'}`);
+    lines.push(`Macro — fat distribution: ${mp?.fat_distribution ?? '—'}`);
+    lines.push(`Macro — posture: ${mp?.posture ?? '—'}`);
+    lines.push(`Face — jaw/chin: ${ff?.jawline_and_chin ?? '—'}; eyes: ${ff?.eye_shape_and_gaze ?? '—'}; nose: ${ff?.nose_structure ?? '—'}`);
+    if (pmicro) {
+        lines.push(`Facial hair: ${pmicro.facial_hair_style ?? '—'}; body hair: ${pmicro.body_hair_density ?? '—'}; vascularity: ${pmicro.vascularity ?? '—'}`);
+    }
+    if (md) {
+        lines.push(`Skin: ${md.skin_complexion ?? '—'}; markings: ${md.skin_markings ?? '—'}`);
+        lines.push(`Hair: ${md.hair_texture ?? '—'} / ${md.hair_color ?? '—'} / ${md.hair_style ?? '—'}; facial hair (detail): ${md.facial_hair ?? '—'}`);
+        lines.push(`Eyes: ${md.eye_shape ?? '—'} / ${md.eye_color ?? '—'}`);
+    }
+    return lines.join('\n');
+}
 
 // --- Main App Component ---
 
@@ -410,7 +451,10 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             if (generatedImage && !options.forceTextOnly) {
                 inputImageBase64 = generatedImage.split(',')[1];
             }
-            const imageUrl = await callImageAPI(promptText, inputImageBase64);
+            const imagePayloadText = personaProfile
+                ? `[CANONICAL PHYSIQUE — IMAGE GENERATOR MUST MATCH THIS SILHOUETTE]\n${buildPhysicalGroundTruthBlock(personaProfile)}\n\n---\n\n${promptText}`
+                : promptText;
+            const imageUrl = await callImageAPI(imagePayloadText, inputImageBase64);
             setGeneratedImage(imageUrl);
             const styleForCache = options.targetStyle ?? visualStyle;
             if (styleForCache === 'photo') setGeneratedImagePhoto(imageUrl);
@@ -471,9 +515,12 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 promptToSend = modificationText;
                 setIsVisTextLoading(false);
             } else {
+                const canonPrefix = personaProfile
+                    ? `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(personaProfile)}\n\n`
+                    : '';
                 const promptContext = currentPrompt
-                    ? `CURRENT PROMPT:\n"${currentPrompt}"\n\nUSER REQUEST: Change the character based on this instruction: "${modificationText}".\n\nRemember to output ONLY the updated full prompt in the structured format.`
-                    : `USER REQUEST: Create a new male character description.\n\nINSTRUCTION: ${modificationText}.\n\nEnsure you use the full structured format with all sections.`;
+                    ? `${canonPrefix}CURRENT PROMPT:\n"${currentPrompt}"\n\nUSER REQUEST: Change the character based on this instruction: "${modificationText}".\n\nRemember to output ONLY the updated full prompt in the structured format.`
+                    : `${canonPrefix}USER REQUEST: Create a new male character description.\n\nINSTRUCTION: ${modificationText}.\n\nEnsure you use the full structured format with all sections.`;
                 const payload = {
                     contents: [{ parts: [{ text: promptContext }] }],
                     systemInstruction: { parts: [{ text: DEFAULT_SYSTEM_PROMPT }] }
@@ -574,16 +621,17 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
         }]);
 
         const profileString = formatProfileToString(profile);
+        const canonPrefix = `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(profile)}\n\n`;
         let seedInstruction = "";
         let contextMsg = "";
 
         if (visUserInput.trim()) {
             contextMsg = `Rolled with guidance: "${visUserInput}"`;
-            seedInstruction = `Create a unique human male character description.\n**PRIMARY DIRECTIVE:** The user specifically requested: "${visUserInput}".\nYou MUST respect this request above all else.\n**SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:\n${profileString}\nIf the user request conflicts with a rolled trait, IGNORE the rolled trait and OBEY the user.\nEnsure he is STRICTLY HUMAN. Translate explicit metrics into safe visual descriptions.\nUse the full structured output format.`;
+            seedInstruction = `${canonPrefix}Create a unique human male character description.\n**PRIMARY DIRECTIVE:** The user specifically requested: "${visUserInput}".\nYou MUST respect this request above all else.\n**SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:\n${profileString}\nIf the user request conflicts with a rolled trait, IGNORE the rolled trait and OBEY the user.\nEnsure he is STRICTLY HUMAN. Translate explicit metrics into safe visual descriptions.\nUse the full structured output format.`;
             setVisUserInput("");
         } else {
             contextMsg = `Base identity rolled: ${profile.core_identity.first_name}`;
-            seedInstruction = `Create a unique human male character description based strictly on these rolled attributes:\n${profileString}\nCombine these elements into a cohesive, physically desirable character.\nTranslate explicit metrics into safe visual equivalents.\nUse the full structured output format.`;
+            seedInstruction = `${canonPrefix}Create a unique human male character description based strictly on these rolled attributes:\n${profileString}\nCombine these elements into a cohesive, physically desirable character.\nTranslate explicit metrics into safe visual equivalents.\nUse the full structured output format.`;
         }
 
         const payload = {
@@ -652,7 +700,10 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 if (picDesc) {
                     try {
                         const styledPicDesc = applyStyleToPrompt(picDesc, visualStyle, STYLE_SECTIONS);
-                        const picUrl = await callImageAPI(styledPicDesc);
+                        const groundedPicPrompt = personaProfile
+                            ? `[CANONICAL PHYSIQUE — IMAGE GENERATOR MUST MATCH THIS SILHOUETTE]\n${buildPhysicalGroundTruthBlock(personaProfile)}\n\n---\n\n${styledPicDesc}`
+                            : styledPicDesc;
+                        const picUrl = await callImageAPI(groundedPicPrompt);
                         setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, image: picUrl, text: blockText || "*[Sent a photo]*" } : msg));
                     } catch (imgErr) {
                         setRoleplayUiChat(prev => prev.map(msg => msg.id === newMsgId ? { ...msg, text: blockText + `\n*(Failed to send photo: ${imgErr.message})*` } : msg));

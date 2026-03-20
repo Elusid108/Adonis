@@ -22,6 +22,12 @@ HANDLING EXPLICIT TRAITS:
 - Example: "Bondage" -> "Visual cues of restraint, leather harness, or dominant posture".
 - DO NOT use explicit sexual language in the final output.
 
+CANONICAL PHYSIQUE (WHEN PROVIDED IN THE USER MESSAGE):
+- If the user message begins with a "CANONICAL PHYSIQUE" block, that block is the SOURCE OF TRUTH for height, skeletal frame, muscle mass, fat distribution, posture, and overall body silhouette (including waist, belly, and limbs).
+- Your [Subject Physique & Features], [Torso Anatomy & Hair Texture], [Legs & Lower Body], and related sections MUST literally reflect those facts. Do NOT let default model biases add weight, a prominent belly, exaggerated musculature, or a different build than the canonical block describes.
+- If canonical lines appear to conflict, reconcile into ONE coherent silhouette using this priority (highest first): macro_physique.fat_distribution, then physique_macro.body_composition, then physical_and_aesthetic.body_type. The written prompt must not contradict the winning interpretation.
+- Never "upgrade" or stereotype the body (e.g. dad bod, power belly, hyper-muscular hero) unless the canonical data clearly supports it.
+
 CRITICAL OUTPUT FORMAT:
 You must output the prompt in the following STRICT SECTIONS:
 

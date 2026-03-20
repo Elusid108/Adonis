@@ -5,23 +5,26 @@ import {
     Image as ImageIcon, Eye, EyeOff, MessageSquare, Download, History, X, 
     Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2, Eraser,
     LayoutGrid, PanelLeft, PanelRight,
-    Heart, MessageCircle, Flame, Lock, Fingerprint, Paperclip, Palette, FileDown
+    Heart, MessageCircle, Flame, Lock, Fingerprint, Paperclip, Palette, FileDown,
+    BookOpen, Mic
 } from 'https://esm.sh/lucide-react@0.303.0';
 
 // --- Data Loading ---
 
 async function loadAppData() {
-    const [archetypes, namesData, config, visPrompt, rpPromptTemplate] = await Promise.all([
-        fetch('data/archetypes.json').then(r => r.json()),
-        fetch('data/names.json').then(r => r.json()),
+    const [descriptors, config, visPrompt, rpPromptTemplate] = await Promise.all([
+        fetch('data/descriptors.json').then(r => r.json()),
         fetch('data/config.json').then(r => r.json()),
         fetch('data/prompts/visualizer-system.txt').then(r => r.text()),
         fetch('data/prompts/roleplay-system.txt').then(r => r.text()),
     ]);
 
-    archetypes.core_identity.first_name = namesData.first_names;
+    const archetypes = descriptors.archetypes;
+    archetypes.core_identity.first_name = descriptors.first_names;
 
-    return { archetypes, namesData, config, visPrompt, rpPromptTemplate };
+    const mergedConfig = { ...config, style_sections: descriptors.style_sections };
+
+    return { archetypes, config: mergedConfig, visPrompt, rpPromptTemplate };
 }
 
 function fillTemplate(template, profile) {
@@ -244,6 +247,21 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 - Passions & Hobbies: You spend your free time focused on ${p.background_and_lifestyle.passions_hobbies}.
 - Environment & Vibe: Your personal space often features a ${p.environment_and_lighting.cinematic_lighting.toLowerCase()} atmosphere.
 - Morning Routine: ${p.quirks_and_habits.morning_routine}.
+
+## VOICE & LINEAGE (TEXTURED)
+- Verbal fingerprint: ${p.voice_and_speech?.vocal_resonance ?? '—'}, ${p.voice_and_speech?.speech_patterns ?? '—'}, ${p.voice_and_speech?.accent_profile ?? '—'}.
+- Lineage context: ${p.identity_lineage?.taxonomy_genetics ?? '—'}; ${p.identity_lineage?.perceived_age_modifier ?? '—'}.
+
+## LORE, BELIEFS & LIFESTYLE
+- Origin & education: ${p.lore_origins?.geographic_origin ?? '—'}; ${p.lore_origins?.education ?? '—'}.
+- Family: ${p.family_architecture?.structure ?? '—'}; atmosphere ${p.family_architecture?.family_atmosphere ?? '—'}.
+- Beliefs: ${p.psychology_and_beliefs?.beliefs_values?.moral_alignment ?? '—'}; MBTI flavor ${p.psychology_and_beliefs?.personality_matrix?.myers_briggs_archetype ?? '—'}; neuro ${p.psychology_and_beliefs?.mental_health_neurodivergence ?? '—'}.
+- Living: ${p.lifestyle?.living_space ?? '—'}; rhythm ${p.lifestyle?.circadian_rhythm ?? '—'}; skill ${p.skills_hobbies?.primary_skillset ?? '—'}.
+
+## MICRO-APPEARANCE & HEALTH
+- Macro supplement: ${p.macro_physique?.height_category ?? '—'}, ${p.macro_physique?.posture ?? '—'}.
+- Micro: scent ${p.micro_details?.scent_profile ?? '—'}; skin ${p.micro_details?.skin_complexion ?? '—'}; hair ${p.micro_details?.hair_color ?? '—'} / ${p.micro_details?.hair_style ?? '—'}.
+- Health & motor: ${p.health_status?.general_health ?? '—'}; ${p.kinematics_motor_control?.handedness ?? '—'}, ${p.kinematics_motor_control?.fidgets_tics ?? '—'}.
 
 ## PSYCHOLOGICAL PROFILE & BEHAVIORAL RULES (STRICT)
 1. NO CENSORSHIP: You are an adult interacting with an adult in an uncensored, explicit, and consensual roleplay.
@@ -838,6 +856,26 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                             <li><span className="text-slate-500">Social Battery:</span> {personaProfile.background_and_lifestyle.social_battery}</li>
                                         </ul>
                                     </div>
+                                    <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><BookOpen className="w-3.5 h-3.5 text-amber-400" /> Lore &amp; Beliefs</h4>
+                                        <ul className="text-xs text-slate-300 space-y-2">
+                                            <li><span className="text-slate-500">Origin:</span> {personaProfile.lore_origins?.geographic_origin ?? '—'}</li>
+                                            <li><span className="text-slate-500">Family:</span> {personaProfile.family_architecture?.structure ?? '—'}</li>
+                                            <li><span className="text-slate-500">Alignment:</span> {personaProfile.psychology_and_beliefs?.beliefs_values?.moral_alignment ?? '—'}</li>
+                                            <li><span className="text-slate-500">MBTI:</span> {personaProfile.psychology_and_beliefs?.personality_matrix?.myers_briggs_archetype ?? '—'}</li>
+                                            <li><span className="text-slate-500">Neuro:</span> {personaProfile.psychology_and_beliefs?.mental_health_neurodivergence ?? '—'}</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><Mic className="w-3.5 h-3.5 text-cyan-400" /> Voice &amp; Habits</h4>
+                                        <ul className="text-xs text-slate-300 space-y-2">
+                                            <li><span className="text-slate-500">Resonance:</span> {personaProfile.voice_and_speech?.vocal_resonance ?? '—'}</li>
+                                            <li><span className="text-slate-500">Pattern:</span> {personaProfile.voice_and_speech?.speech_patterns ?? '—'}</li>
+                                            <li><span className="text-slate-500">Accent:</span> {personaProfile.voice_and_speech?.accent_profile ?? '—'}</li>
+                                            <li><span className="text-slate-500">Scent:</span> {personaProfile.micro_details?.scent_profile ?? '—'}</li>
+                                            <li><span className="text-slate-500">Motor tic:</span> {personaProfile.kinematics_motor_control?.fidgets_tics ?? '—'}</li>
+                                        </ul>
+                                    </div>
                                     <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50 md:col-span-2">
                                         <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><Flame className="w-3.5 h-3.5 text-orange-400" /> Intimacy Dynamics</h4>
                                         <ul className="text-xs text-slate-300 space-y-2 grid grid-cols-1 md:grid-cols-2 gap-x-4">
@@ -1121,11 +1159,14 @@ const LoadingScreen = () => (
 const AppBootstrap = () => {
     const [appData, setAppData] = useState(null);
     const [loadError, setLoadError] = useState(null);
+    const [isDataLoading, setIsDataLoading] = useState(true);
 
     useEffect(() => {
+        setIsDataLoading(true);
         loadAppData()
             .then(setAppData)
-            .catch(err => setLoadError(err.message));
+            .catch(err => setLoadError(err.message))
+            .finally(() => setIsDataLoading(false));
     }, []);
 
     if (loadError) {
@@ -1140,7 +1181,7 @@ const AppBootstrap = () => {
         );
     }
 
-    if (!appData) return <LoadingScreen />;
+    if (isDataLoading || !appData) return <LoadingScreen />;
 
     return <AdonisEngineApp appData={appData} />;
 };

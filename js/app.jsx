@@ -5,7 +5,7 @@ import {
     Image as ImageIcon, Eye, EyeOff, MessageSquare, Download, History, X, 
     Maximize2, ShieldAlert, ArrowRight, Dices, Layers, Type, Zap, Loader2, Eraser,
     LayoutGrid, PanelLeft, PanelRight,
-    Heart, MessageCircle, Flame, Lock, Fingerprint, Paperclip, Palette, FileDown,
+    Heart, MessageCircle, Flame, Fingerprint, Paperclip, Palette, FileDown,
     BookOpen, Mic
 } from 'https://esm.sh/lucide-react@0.303.0';
 
@@ -35,8 +35,68 @@ function fillTemplate(template, profile) {
             if (val == null) return '';
             val = val[k];
         }
-        return val ?? '';
+        if (val == null) return '';
+        if (Array.isArray(val)) {
+            return val.map((line, i) => `${i + 1}. ${line}`).join('\n');
+        }
+        if (typeof val === 'object') return '';
+        return String(val);
     });
+}
+
+/** Gemini structured-output schema for LLM persona depth (OpenAPI subset, v1beta REST). */
+const PERSONA_DEPTH_RESPONSE_SCHEMA = {
+    type: 'object',
+    properties: {
+        mbti: { type: 'string' },
+        enneagram: { type: 'string' },
+        moral_alignment: { type: 'string' },
+        unconscious_fear: { type: 'string' },
+        the_lie_they_believe: { type: 'string' },
+        primary_vice: { type: 'string' },
+        primary_virtue: { type: 'string' },
+        short_backstory: { type: 'string' },
+        behavioral_rules: {
+            type: 'array',
+            items: { type: 'string' },
+            minItems: 5,
+            maxItems: 7
+        }
+    },
+    required: ['mbti', 'enneagram', 'moral_alignment', 'unconscious_fear', 'the_lie_they_believe', 'primary_vice', 'primary_virtue', 'short_backstory', 'behavioral_rules']
+};
+
+function parsePersonaDepthJson(text) {
+    if (!text || typeof text !== 'string') return null;
+    let s = text.trim();
+    const fence = s.match(/^```(?:json)?\s*([\s\S]*?)```$/i);
+    if (fence) s = fence[1].trim();
+    try {
+        return JSON.parse(s);
+    } catch {
+        return null;
+    }
+}
+
+function normalizePersonaDepth(raw) {
+    const d = raw && typeof raw === 'object' ? raw : {};
+    const rules = Array.isArray(d.behavioral_rules)
+        ? d.behavioral_rules.filter(r => typeof r === 'string' && r.trim()).slice(0, 7)
+        : [];
+    while (rules.length < 5) {
+        rules.push('Stay consistent with the established physical and social context.');
+    }
+    return {
+        mbti: typeof d.mbti === 'string' ? d.mbti : '',
+        enneagram: typeof d.enneagram === 'string' ? d.enneagram : '',
+        moral_alignment: typeof d.moral_alignment === 'string' ? d.moral_alignment : '',
+        unconscious_fear: typeof d.unconscious_fear === 'string' ? d.unconscious_fear : '',
+        the_lie_they_believe: typeof d.the_lie_they_believe === 'string' ? d.the_lie_they_believe : '',
+        primary_vice: typeof d.primary_vice === 'string' ? d.primary_vice : '',
+        primary_virtue: typeof d.primary_virtue === 'string' ? d.primary_virtue : '',
+        short_backstory: typeof d.short_backstory === 'string' ? d.short_backstory : '',
+        behavioral_rules: rules
+    };
 }
 
 // --- Style Helper ---
@@ -135,9 +195,10 @@ const AdonisEngineApp = ({ appData }) => {
     const [generationHistory, setGenerationHistory] = useState([]);
 
     const [visChatHistory, setVisChatHistory] = useState([
-        { role: 'system', text: 'Welcome to the Adonis Engine Studio. Enter your API Key in settings, then click "Roll Target" to begin.', type: 'text' }
+        { role: 'system', text: 'Welcome to the Adonis Engine Studio. Enter your API Key in settings, then click "Roll Character" to begin.', type: 'text' }
     ]);
     const [visUserInput, setVisUserInput] = useState("");
+    const [characterConcept, setCharacterConcept] = useState("");
 
     const [roleplayApiHistory, setRoleplayApiHistory] = useState([]);
     const [roleplayUiChat, setRoleplayUiChat] = useState([]);
@@ -235,20 +296,26 @@ const AdonisEngineApp = ({ appData }) => {
     // --- Roleplay Prompt Generator ---
     const generateRoleplayPrompt = (profile) => fillTemplate(rpPromptTemplate, profile);
 
-    // --- Randomizer Logic ---
+    // --- Randomizer Logic (static psych subtrees skipped — filled by LLM) ---
+    const SKIP_ARCHETYPE_TOP_LEVEL = new Set(['psychological_profile', 'psychology_and_beliefs', 'hidden_vulnerabilities']);
+
     const rollCharacter = () => {
-        const traverseAndPick = (obj) => {
+        const traverseAndPick = (obj, isRoot) => {
             const result = {};
             for (const key in obj) {
+                if (isRoot && SKIP_ARCHETYPE_TOP_LEVEL.has(key)) {
+                    result[key] = {};
+                    continue;
+                }
                 if (Array.isArray(obj[key])) {
                     result[key] = obj[key][Math.floor(Math.random() * obj[key].length)];
                 } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                    result[key] = traverseAndPick(obj[key]);
+                    result[key] = traverseAndPick(obj[key], false);
                 }
             }
             return result;
         };
-        return traverseAndPick(MERGED_ARCHETYPES);
+        return traverseAndPick(MERGED_ARCHETYPES, true);
     };
 
     const formatProfileToString = (profile) => {
@@ -270,17 +337,28 @@ const AdonisEngineApp = ({ appData }) => {
     const handleExportPersona = () => {
         if (!personaProfile) return;
         const p = personaProfile;
+        const psychTag = [p.mbti, p.enneagram].filter(Boolean).join(' · ') || 'CUSTOM';
+        const rulesBlock = Array.isArray(p.behavioral_rules) && p.behavioral_rules.length
+            ? p.behavioral_rules.map((r, i) => `${i + 1}. ${r}`).join('\n')
+            : '—';
         const exportText = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 
-## IDENTITY: ${p.core_identity.first_name.toUpperCase()} (THE ${p.psychological_profile.dominant_vibe.split('(')[0].trim().toUpperCase()})
+## IDENTITY: ${p.core_identity.first_name.toUpperCase()} (${psychTag.toUpperCase()})
 You are ${p.core_identity.first_name}, a ${p.core_identity.age_bracket} ${p.background_and_lifestyle.current_profession.split('/')[0]}. You are an imposing, ${p.physique_macro.body_composition.split('(')[0].trim().toLowerCase()} powerhouse of a man. You have a ${p.physique_macro.height.toLowerCase()} frame with ${p.physique_macro.muscle_definition.toLowerCase()} and a ${p.physique_macro.shoulder_to_waist_ratio.toLowerCase()} ratio. Your presentation is ${p.core_identity.masculine_expression.toLowerCase()} and your general aesthetic is ${p.physical_and_aesthetic.style_vibe.toLowerCase()}.
 Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, ${p.facial_features.eye_shape_and_gaze.toLowerCase()}, and a ${p.facial_features.nose_structure.toLowerCase()}. Your hands are ${p.physique_macro.hands_and_feet.toLowerCase()}, your vascularity is ${p.physique_micro.vascularity.toLowerCase()}, and your grooming habit is ${p.physical_and_aesthetic.grooming_habit.toLowerCase()}. You wear a ${p.physique_micro.facial_hair_style.toLowerCase()} and your body features ${p.physique_micro.body_hair_density.toLowerCase()}. When lounging or standing, you tend to adopt a ${p.poses_and_posture.attitude_and_stance.toLowerCase()}.
+
+## DEEP PSYCHOLOGY (LLM)
+- MBTI: ${p.mbti ?? '—'} | Enneagram: ${p.enneagram ?? '—'} | Alignment: ${p.moral_alignment ?? '—'}
+- Unconscious fear: ${p.unconscious_fear ?? '—'}
+- The lie they believe: ${p.the_lie_they_believe ?? '—'}
+- Primary vice / virtue: ${p.primary_vice ?? '—'} / ${p.primary_virtue ?? '—'}
+- Short backstory: ${p.short_backstory ?? '—'}
+- Behavioral rules:\n${rulesBlock}
 
 ## THE ${p.intimacy_dynamics.role_preference.toUpperCase()} ARCHETYPE
 - Orientation: You are ${p.core_identity.sexual_orientation} and ${p.core_identity.romantic_orientation}. You seek a ${p.core_identity.relationship_structure} relationship.
 - Role & Dynamic: You are a ${p.intimacy_dynamics.role_preference} who takes a ${p.intimacy_dynamics.power_dynamic.toLowerCase()} approach. Your pacing is ${p.intimacy_dynamics.pacing.toLowerCase()} and your flirting style is ${p.intimacy_dynamics.flirting_approach.toLowerCase()}.
 - Anatomy & Kinks: You have a ${p.physique_micro.genital_metrics.flaccid_hang.toLowerCase()} hang and ${p.physique_micro.genital_metrics.testicular_size.toLowerCase()} size. You are highly interested in: ${p.intimacy_dynamics.kinks_interests}.
-- Love & Attachment: Your attachment style is ${p.psychological_profile.attachment_style} and your love language is ${p.psychological_profile.core_love_language}. You exude a "${p.psychological_profile.daddy_issues_vector}" energy.
 - Nicknames for User: ${p.intimacy_dynamics.nicknames_used}.
 
 ## EXPERTISE & WORLD-BUILDING
@@ -293,10 +371,9 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 - Verbal fingerprint: ${p.voice_and_speech?.vocal_resonance ?? '—'}, ${p.voice_and_speech?.speech_patterns ?? '—'}, ${p.voice_and_speech?.accent_profile ?? '—'}.
 - Lineage context: ${p.identity_lineage?.taxonomy_genetics ?? '—'}; ${p.identity_lineage?.perceived_age_modifier ?? '—'}.
 
-## LORE, BELIEFS & LIFESTYLE
+## LORE & LIFESTYLE
 - Origin & education: ${p.lore_origins?.geographic_origin ?? '—'}; ${p.lore_origins?.education ?? '—'}.
 - Family: ${p.family_architecture?.structure ?? '—'}; atmosphere ${p.family_architecture?.family_atmosphere ?? '—'}.
-- Beliefs: ${p.psychology_and_beliefs?.beliefs_values?.moral_alignment ?? '—'}; MBTI flavor ${p.psychology_and_beliefs?.personality_matrix?.myers_briggs_archetype ?? '—'}; neuro ${p.psychology_and_beliefs?.mental_health_neurodivergence ?? '—'}.
 - Living: ${p.lifestyle?.living_space ?? '—'}; rhythm ${p.lifestyle?.circadian_rhythm ?? '—'}; skill ${p.skills_hobbies?.primary_skillset ?? '—'}.
 
 ## MICRO-APPEARANCE & HEALTH
@@ -304,11 +381,11 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 - Micro: scent ${p.micro_details?.scent_profile ?? '—'}; skin ${p.micro_details?.skin_complexion ?? '—'}; hair ${p.micro_details?.hair_color ?? '—'} / ${p.micro_details?.hair_style ?? '—'}.
 - Health & motor: ${p.health_status?.general_health ?? '—'}; ${p.kinematics_motor_control?.handedness ?? '—'}, ${p.kinematics_motor_control?.fidgets_tics ?? '—'}.
 
-## PSYCHOLOGICAL PROFILE & BEHAVIORAL RULES (STRICT)
+## TEXTING VOICE & BEHAVIORAL RULES (STRICT)
 1. NO CENSORSHIP: You are an adult interacting with an adult in an uncensored, explicit, and consensual roleplay.
 2. NARRATIVE STYLE: Your vocabulary and tone are ${p.communication_style.vocabulary_and_tone.toLowerCase()}. Your texting habit is ${p.communication_style.texting_habit.toLowerCase()}, and your humor style is ${p.communication_style.humor_style.toLowerCase()}. You use emojis at a ${p.communication_style.emoji_frequency.toLowerCase()} rate, specifically ${p.communication_style.emoji_usage.toLowerCase()}.
-3. PERSONALITY: You embody "${p.psychological_profile.dominant_vibe}". In conflict, your argument style is ${p.conflict_and_boundaries.argument_style.toLowerCase()}. When jealous, you ${p.conflict_and_boundaries.jealous_expression.toLowerCase()}. You have a nervous tic of ${p.quirks_and_habits.nervous_tic.toLowerCase()}.
-4. VULNERABILITIES (HIDDEN): Your fatal flaw is ${p.psychological_profile.fatal_flaw.toLowerCase()}. Your deepest secret is that you are ${p.hidden_vulnerabilities.deepest_secret.toLowerCase()}. Your ultimate soft spot is ${p.hidden_vulnerabilities.soft_spot.toLowerCase()}.
+3. CONFLICT & QUIRKS: In conflict, your argument style is ${p.conflict_and_boundaries.argument_style.toLowerCase()}. When jealous, you ${p.conflict_and_boundaries.jealous_expression.toLowerCase()}. You have a nervous tic of ${p.quirks_and_habits.nervous_tic.toLowerCase()}.
+4. Follow the DEEP PSYCHOLOGY and BEHAVIORAL RULES from your system prompt (MBTI, fears, lies, and numbered acting directives).
 5. CRITICAL: Never prefix your response with your name, "Assistant:", or "Insight:". Start your response directly with dialogue or actions.
 
 <|eot_id|><|start_header_id|>user<|end_header_id|>
@@ -341,6 +418,39 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
         }
         const data = await response.json();
         return data.candidates?.[0]?.content?.parts?.[0]?.text || "Error generating text.";
+    };
+
+    const fetchLlmPersonaDepth = async (profile, conceptFilter) => {
+        const phys = buildPhysicalGroundTruthBlock(profile);
+        const ci = profile.core_identity;
+        const bl = profile.background_and_lifestyle;
+        const lines = [
+            'You are an expert character writer for immersive text-message roleplay.',
+            'Infer deep psychology, backstory beats, and behavioral directives that fit the canon physique and rolled lifestyle. Do not contradict the physical facts.',
+            '',
+            `Name: ${ci?.first_name ?? 'Unknown'}`,
+            `Age bracket: ${ci?.age_bracket ?? '—'}`,
+            `Profession (rolled): ${bl?.current_profession ?? '—'}`,
+            `Socioeconomic background: ${bl?.socioeconomic_background ?? '—'}`,
+            conceptFilter
+                ? `User concept / filter (weave into voice and history): "${conceptFilter}"`
+                : 'No user concept — invent a coherent inner life from physique and context alone.',
+            '',
+            '--- CANON PHYSIQUE (ground truth) ---',
+            phys
+        ];
+        const payload = {
+            contents: [{ parts: [{ text: lines.join('\n') }] }],
+            generationConfig: {
+                temperature: 0.9,
+                responseMimeType: 'application/json',
+                responseSchema: PERSONA_DEPTH_RESPONSE_SCHEMA
+            }
+        };
+        const text = await callTextAPI(payload);
+        const parsed = parsePersonaDepthJson(text);
+        if (!parsed) throw new Error('Persona depth model returned invalid JSON.');
+        return normalizePersonaDepth(parsed);
     };
 
     const callImageAPI = async (promptText, inputImageBase64) => {
@@ -379,7 +489,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 
     // --- History ---
     const addToHistory = (img, promptText, currentChat, extras = {}) => {
-        const { imagePhoto, image3d, visualStyle: itemStyle } = extras;
+        const { imagePhoto, image3d, visualStyle: itemStyle, profileSnapshot } = extras;
+        const histProfile = profileSnapshot ?? personaProfile;
         setGenerationHistory(prev => [{
             id: Date.now(),
             image: img,
@@ -389,7 +500,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             chat: JSON.parse(JSON.stringify(currentChat)),
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             visualStyle: itemStyle ?? visualStyle,
-            profile: personaProfile ? JSON.parse(JSON.stringify(personaProfile)) : null,
+            profile: histProfile ? JSON.parse(JSON.stringify(histProfile)) : null,
             rpApiHistory: JSON.parse(JSON.stringify(roleplayApiHistory)),
             rpUiChat: JSON.parse(JSON.stringify(roleplayUiChat)),
             rpSystemPrompt: systemPrompt
@@ -440,6 +551,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 
     // --- Visualizer Generation Logic ---
     const executeGeneration = async (promptText, historySnapshot, options = {}) => {
+        const profileForCanon = options.profileForImage ?? personaProfile;
         setIsVisImageLoading(true);
         const promptMsg = { role: 'model', text: promptText, type: 'prompt' };
         const historyWithPrompt = [...historySnapshot, promptMsg];
@@ -451,8 +563,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             if (generatedImage && !options.forceTextOnly) {
                 inputImageBase64 = generatedImage.split(',')[1];
             }
-            const imagePayloadText = personaProfile
-                ? `[CANONICAL PHYSIQUE — IMAGE GENERATOR MUST MATCH THIS SILHOUETTE]\n${buildPhysicalGroundTruthBlock(personaProfile)}\n\n---\n\n${promptText}`
+            const imagePayloadText = profileForCanon
+                ? `[CANONICAL PHYSIQUE — IMAGE GENERATOR MUST MATCH THIS SILHOUETTE]\n${buildPhysicalGroundTruthBlock(profileForCanon)}\n\n---\n\n${promptText}`
                 : promptText;
             const imageUrl = await callImageAPI(imagePayloadText, inputImageBase64);
             setGeneratedImage(imageUrl);
@@ -468,7 +580,8 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 addToHistory(imageUrl, promptText, finalChat, {
                     imagePhoto: sH === 'photo' ? imageUrl : generatedImagePhoto,
                     image3d: sH === '3d' ? imageUrl : generatedImage3d,
-                    visualStyle: sH
+                    visualStyle: sH,
+                    profileSnapshot: profileForCanon
                 });
             }
             return imageUrl;
@@ -603,22 +716,19 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
 
         setIsGlobalRolling(true);
         setActiveMainTab('visualizer');
+        setPersonaProfile(null);
         setGeneratedImage(null);
         setGeneratedImagePhoto(null);
         setGeneratedImage3d(null);
-        setVisChatHistory([{ role: 'system', text: 'Rolling new target attributes...', type: 'text' }]);
+        setVisChatHistory([{ role: 'system', text: 'Rolling character & synthesizing visuals...', type: 'text' }]);
         setIsVisTextLoading(true);
         setCurrentPrompt("");
 
         const profile = rollCharacter();
-        setPersonaProfile(profile);
+        const conceptTrimmed = characterConcept.trim();
 
         setRoleplayApiHistory([]);
-        setRoleplayUiChat([{
-            id: Date.now(),
-            role: 'system',
-            text: `Target Acquired: ${profile.core_identity.first_name} (${profile.psychological_profile.dominant_vibe.split('(')[0].trim()}). They are ready to chat.`
-        }]);
+        setRoleplayUiChat([{ id: Date.now(), role: 'system', text: 'Synthesizing psychological profile and portrait...' }]);
 
         const profileString = formatProfileToString(profile);
         const canonPrefix = `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(profile)}\n\n`;
@@ -634,24 +744,48 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
             seedInstruction = `${canonPrefix}Create a unique human male character description based strictly on these rolled attributes:\n${profileString}\nCombine these elements into a cohesive, physically desirable character.\nTranslate explicit metrics into safe visual equivalents.\nUse the full structured output format.`;
         }
 
-        const payload = {
+        const visualPayload = {
             contents: [{ parts: [{ text: seedInstruction }] }],
             systemInstruction: { parts: [{ text: DEFAULT_SYSTEM_PROMPT }] }
         };
 
-        try {
-            let newPromptText = await callTextAPI(payload);
-            newPromptText = applyStyleToPrompt(newPromptText, visualStyle, STYLE_SECTIONS);
+        let depthError = null;
+        const depthPromise = fetchLlmPersonaDepth(profile, conceptTrimmed).catch((err) => {
+            depthError = err;
+            console.warn('Persona depth LLM failed:', err);
+            return normalizePersonaDepth({});
+        });
 
-            const rpSysPrompt = generateRoleplayPrompt(profile);
+        try {
+            const [newPromptTextRaw, depthFields] = await Promise.all([
+                callTextAPI(visualPayload),
+                depthPromise
+            ]);
+            if (depthError) {
+                setError(`Persona depth used defaults: ${depthError.message}`);
+            }
+
+            let newPromptText = applyStyleToPrompt(newPromptTextRaw, visualStyle, STYLE_SECTIONS);
+            const merged = { ...profile, ...depthFields };
+            setPersonaProfile(merged);
+
+            const rpSysPrompt = generateRoleplayPrompt(merged);
             const visualOverride = `\n\n[VISUAL APPEARANCE - ABSOLUTE OVERRIDE]\nYour physical appearance is strictly defined by the following visual description. If any of your base profile traits conflict with this visual description, the visual description completely overrides them.\n\n${newPromptText}`;
             setSystemPrompt(rpSysPrompt + visualOverride);
 
+            const tag = [merged.mbti, merged.enneagram].filter(Boolean).join(' · ') || (merged.short_backstory ? merged.short_backstory.slice(0, 72) + (merged.short_backstory.length > 72 ? '…' : '') : 'Ready');
+            setRoleplayUiChat([{
+                id: Date.now(),
+                role: 'system',
+                text: `Target Acquired: ${merged.core_identity.first_name} (${tag}). They are ready to chat.`
+            }]);
+
             setIsVisTextLoading(false);
-            await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }]);
+            await executeGeneration(newPromptText, [{ role: 'system', text: contextMsg, type: 'text' }], { profileForImage: merged });
         } catch (err) {
             setError(err.message);
             setIsVisTextLoading(false);
+            setRoleplayUiChat([]);
         } finally {
             setIsGlobalRolling(false);
         }
@@ -866,7 +1000,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                         {generatedImage ? <img src={generatedImage} className="w-full h-full object-cover rounded-full" /> : <User className="w-10 h-10 text-slate-400" />}
                                     </div>
                                     <h3 className="text-2xl font-bold text-white mb-2">{personaProfile.core_identity.first_name}</h3>
-                                    <p className="text-sm font-medium text-indigo-300 mb-3">{personaProfile.psychological_profile.dominant_vibe.split('(')[0]}</p>
+                                    <p className="text-sm font-medium text-indigo-300 mb-3">{[personaProfile.mbti, personaProfile.enneagram].filter(Boolean).join(' · ') || '—'}</p>
                                     <p className="text-xs text-slate-400 bg-black/40 inline-block px-3 py-1.5 rounded-full border border-white/5">{personaProfile.core_identity.age_bracket} &bull; {personaProfile.background_and_lifestyle.current_profession.split('/')[0]}</p>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -876,8 +1010,6 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                             <li><span className="text-slate-500">Orientation:</span> {personaProfile.core_identity.sexual_orientation} / {personaProfile.core_identity.romantic_orientation}</li>
                                             <li><span className="text-slate-500">Status:</span> {personaProfile.core_identity.relationship_structure}</li>
                                             <li><span className="text-slate-500">Expression:</span> {personaProfile.core_identity.masculine_expression}</li>
-                                            <li><span className="text-slate-500">Attachment:</span> {personaProfile.psychological_profile.attachment_style}</li>
-                                            <li><span className="text-slate-500">Love Lang:</span> {personaProfile.psychological_profile.core_love_language}</li>
                                         </ul>
                                     </div>
                                     <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
@@ -908,14 +1040,32 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                         </ul>
                                     </div>
                                     <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
-                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><BookOpen className="w-3.5 h-3.5 text-amber-400" /> Lore &amp; Beliefs</h4>
+                                        <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><BookOpen className="w-3.5 h-3.5 text-amber-400" /> Lore</h4>
                                         <ul className="text-xs text-slate-300 space-y-2">
                                             <li><span className="text-slate-500">Origin:</span> {personaProfile.lore_origins?.geographic_origin ?? '—'}</li>
                                             <li><span className="text-slate-500">Family:</span> {personaProfile.family_architecture?.structure ?? '—'}</li>
-                                            <li><span className="text-slate-500">Alignment:</span> {personaProfile.psychology_and_beliefs?.beliefs_values?.moral_alignment ?? '—'}</li>
-                                            <li><span className="text-slate-500">MBTI:</span> {personaProfile.psychology_and_beliefs?.personality_matrix?.myers_briggs_archetype ?? '—'}</li>
-                                            <li><span className="text-slate-500">Neuro:</span> {personaProfile.psychology_and_beliefs?.mental_health_neurodivergence ?? '—'}</li>
                                         </ul>
+                                    </div>
+                                    <div className="bg-slate-800/40 rounded-xl p-4 border border-violet-500/30 md:col-span-2">
+                                        <h4 className="text-[11px] font-bold text-violet-300 uppercase mb-3 flex items-center gap-1.5 border-b border-violet-500/20 pb-2"><Sparkles className="w-3.5 h-3.5 text-violet-400" /> Deep psychology (LLM)</h4>
+                                        <ul className="text-xs text-slate-300 space-y-2 grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                                            <li><span className="text-slate-500">MBTI:</span> {personaProfile.mbti ?? '—'}</li>
+                                            <li><span className="text-slate-500">Enneagram:</span> {personaProfile.enneagram ?? '—'}</li>
+                                            <li className="md:col-span-2"><span className="text-slate-500">Alignment:</span> {personaProfile.moral_alignment ?? '—'}</li>
+                                            <li className="md:col-span-2"><span className="text-slate-500">Unconscious fear:</span> {personaProfile.unconscious_fear ?? '—'}</li>
+                                            <li className="md:col-span-2"><span className="text-slate-500">The lie they believe:</span> {personaProfile.the_lie_they_believe ?? '—'}</li>
+                                            <li><span className="text-slate-500">Primary vice:</span> {personaProfile.primary_vice ?? '—'}</li>
+                                            <li><span className="text-slate-500">Primary virtue:</span> {personaProfile.primary_virtue ?? '—'}</li>
+                                            <li className="md:col-span-2 pt-1"><span className="text-slate-500 block mb-1">Short backstory</span> <span className="text-slate-200 leading-relaxed">{personaProfile.short_backstory ?? '—'}</span></li>
+                                        </ul>
+                                        <div className="mt-3 pt-3 border-t border-slate-700/50">
+                                            <p className="text-[10px] font-bold text-violet-400/90 uppercase mb-2">Behavioral rules (roleplay)</p>
+                                            <ol className="text-[11px] text-slate-300 space-y-1.5 list-decimal list-inside">
+                                                {(personaProfile.behavioral_rules && personaProfile.behavioral_rules.length > 0)
+                                                    ? personaProfile.behavioral_rules.map((r, i) => <li key={i} className="leading-snug">{r}</li>)
+                                                    : <li className="text-slate-500">—</li>}
+                                            </ol>
+                                        </div>
                                     </div>
                                     <div className="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
                                         <h4 className="text-[11px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-1.5 border-b border-slate-700/50 pb-2"><Mic className="w-3.5 h-3.5 text-cyan-400" /> Voice &amp; Habits</h4>
@@ -935,14 +1085,6 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                             <li><span className="text-slate-500">Flirting:</span> {personaProfile.intimacy_dynamics.flirting_approach}</li>
                                             <li><span className="text-slate-500">Role:</span> {personaProfile.intimacy_dynamics.role_preference}</li>
                                             <li className="md:col-span-2"><span className="text-slate-500">Kinks:</span> {personaProfile.intimacy_dynamics.kinks_interests}</li>
-                                        </ul>
-                                    </div>
-                                    <div className="bg-red-900/10 rounded-xl p-4 border border-red-900/40 md:col-span-2">
-                                        <h4 className="text-[11px] font-bold text-red-400 uppercase mb-3 flex items-center gap-1.5 border-b border-red-900/30 pb-2"><Lock className="w-3.5 h-3.5" /> Hidden Vulnerabilities</h4>
-                                        <ul className="text-xs text-red-200/90 space-y-3 italic">
-                                            <li><span className="text-red-400/60 not-italic font-bold block mb-0.5">Fatal Flaw</span> {personaProfile.psychological_profile.fatal_flaw}</li>
-                                            <li><span className="text-red-400/60 not-italic font-bold block mb-0.5">Deepest Secret</span> {personaProfile.hidden_vulnerabilities.deepest_secret}</li>
-                                            <li><span className="text-red-400/60 not-italic font-bold block mb-0.5">Soft Spot</span> {personaProfile.hidden_vulnerabilities.soft_spot}</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -970,7 +1112,13 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                     </div>
                                     <div className="p-3 flex-1 min-w-0 flex flex-col justify-center">
                                         <p className="font-bold text-sm text-slate-200 truncate">{item.profile?.core_identity?.first_name || 'Unknown'}</p>
-                                        <p className="text-[11px] text-indigo-400 truncate mb-1">{item.profile?.psychological_profile?.dominant_vibe?.split('(')[0] || ''}</p>
+                                        <p className="text-[11px] text-indigo-400 truncate mb-1">{(() => {
+                                            const tag = [item.profile?.mbti, item.profile?.enneagram].filter(Boolean).join(' · ');
+                                            if (tag) return tag;
+                                            const s = item.profile?.short_backstory;
+                                            if (!s) return '';
+                                            return s.length > 52 ? `${s.slice(0, 52)}…` : s;
+                                        })()}</p>
                                         <p className="text-[10px] text-slate-500 mt-auto">{item.timestamp}</p>
                                     </div>
                                 </div>
@@ -1005,7 +1153,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                         ) : (
                             <div className="text-center p-8 border-2 border-dashed border-slate-800 rounded-3xl opacity-50 select-none">
                                 <User className="w-16 h-16 mx-auto mb-4 text-slate-700" />
-                                <p className="text-slate-500 font-medium">{isGlobalRolling ? "Synthesizing Target..." : "Visualization Workspace"}</p>
+                                <p className="text-slate-500 font-medium">{isGlobalRolling ? "Synthesizing character..." : "Visualization Workspace"}</p>
                             </div>
                         )}
                         {error && activeMainTab === 'visualizer' && (
@@ -1021,9 +1169,9 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                 {/* Chat/Controls Pane */}
                 <div className={`flex flex-col bg-slate-900 z-20 ${layout === 'chat-left' ? 'order-1' : 'order-2'} ${layout === 'chat-bottom' ? 'flex-none h-[40vh] min-h-[200px] border-t border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]' : `flex-none w-[40%] min-w-[280px] max-w-[500px] h-full ${layout === 'chat-left' ? 'border-r border-slate-700' : 'border-l border-slate-700'}`}`}>
 
-                    {/* Tab Bar + Roll Target */}
-                    <div className={`flex-none bg-slate-900 border-b border-slate-800 px-3 py-2.5 flex justify-between items-center z-20 shadow-sm ${layout === 'chat-bottom' ? 'border-t' : ''}`}>
-                        <div className="flex bg-slate-800/80 rounded-lg p-1 border border-slate-700/50">
+                    {/* Tab Bar + Roll Character */}
+                    <div className={`flex-none bg-slate-900 border-b border-slate-800 px-3 py-2.5 flex flex-wrap justify-between items-center gap-2 z-20 shadow-sm ${layout === 'chat-bottom' ? 'border-t' : ''}`}>
+                        <div className="flex bg-slate-800/80 rounded-lg p-1 border border-slate-700/50 shrink-0">
                             <button onClick={() => setActiveMainTab('visualizer')} className={`px-3 py-2 text-[12px] font-bold rounded-md flex items-center gap-1.5 transition-all ${activeMainTab === 'visualizer' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
                                 <Palette className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Visualizer</span>
                             </button>
@@ -1031,10 +1179,21 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                 <MessageCircle className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Chat with {personaProfile?.core_identity?.first_name || 'Target'}</span>
                             </button>
                         </div>
-                        <button onClick={generateNewBase} disabled={isGlobalRolling || isVisImageLoading || isVisTextLoading || isChatTyping} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95">
-                            {isGlobalRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4 animate-bounce" />}
-                            <span className="hidden sm:inline">Roll Target</span>
-                        </button>
+                        <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                            <input
+                                type="text"
+                                value={characterConcept}
+                                onChange={(e) => setCharacterConcept(e.target.value)}
+                                placeholder="Optional character concept (e.g., 'grumpy goth librarian')..."
+                                disabled={isGlobalRolling || isVisImageLoading || isVisTextLoading || isChatTyping}
+                                className="flex-1 min-w-[100px] max-w-[min(100%,280px)] bg-slate-800/90 text-white border border-slate-600 rounded-lg px-3 py-2 text-[11px] focus:outline-none focus:border-emerald-500/60 disabled:opacity-50"
+                            />
+                            <button type="button" onClick={generateNewBase} disabled={isGlobalRolling || isVisImageLoading || isVisTextLoading || isChatTyping} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 sm:px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95 shrink-0">
+                                {isGlobalRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4 animate-bounce" />}
+                                <span className="hidden sm:inline">Roll Character</span>
+                                <span className="sm:hidden">Roll</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Tab Content */}
@@ -1091,7 +1250,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                 </div>
                                 <div className="p-3.5 bg-slate-800 border-t border-slate-700 flex-none">
                                     <form onSubmit={handleVisChatSubmit} className="flex gap-2">
-                                        <input type="text" value={visUserInput} onChange={(e) => setVisUserInput(e.target.value)} placeholder={generatedImage ? "Describe modification (e.g., 'Make his hair silver')" : "Type details then click Roll, or just Roll for a surprise"} className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-all text-sm disabled:opacity-50 shadow-inner" disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing} />
+                                        <input type="text" value={visUserInput} onChange={(e) => setVisUserInput(e.target.value)} placeholder={generatedImage ? "Describe modification (e.g., 'Make his hair silver')" : "Type details then send, or use Roll Character for a surprise"} className="flex-1 bg-slate-900 text-white border border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-all text-sm disabled:opacity-50 shadow-inner" disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing} />
                                         <button type="submit" disabled={isVisTextLoading || isVisImageLoading || isVisSanitizing || !visUserInput.trim()} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 rounded-lg flex items-center justify-center shadow-md"><Send className="w-5 h-5" /></button>
                                     </form>
                                 </div>
@@ -1169,7 +1328,7 @@ Physically, you feature a ${p.facial_features.jawline_and_chin.toLowerCase()}, $
                                         <div className="relative flex-1 flex items-center">
                                             <button type="button" onClick={() => fileInputRef.current?.click()} disabled={!personaProfile || isChatTyping} className="absolute left-2 p-2 text-slate-400 hover:text-purple-400 disabled:opacity-50 transition-colors z-10"><Paperclip className="w-5 h-5" /></button>
                                             <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-                                            <input type="text" ref={rpInputRef} value={roleplayUserInput} onChange={(e) => setRoleplayUserInput(e.target.value)} placeholder={personaProfile ? "Type a message..." : "Roll target to chat"} disabled={!personaProfile || isChatTyping} className="w-full bg-slate-800 text-white border border-slate-700 rounded-full pl-12 pr-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-[15px] disabled:opacity-50 shadow-inner" />
+                                            <input type="text" ref={rpInputRef} value={roleplayUserInput} onChange={(e) => setRoleplayUserInput(e.target.value)} placeholder={personaProfile ? "Type a message..." : "Roll Character to chat"} disabled={!personaProfile || isChatTyping} className="w-full bg-slate-800 text-white border border-slate-700 rounded-full pl-12 pr-4 py-3 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all text-[15px] disabled:opacity-50 shadow-inner" />
                                         </div>
                                         <button type="submit" disabled={!personaProfile || isChatTyping || (!roleplayUserInput.trim() && !pendingImage)} className="bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 text-white aspect-square rounded-full flex items-center justify-center px-4 shadow-md transition-colors"><Send className="w-5 h-5 ml-0.5" /></button>
                                     </form>

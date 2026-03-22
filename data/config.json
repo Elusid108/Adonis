@@ -1,5 +1,5 @@
 {
-  "app_version": "2.1.4",
+  "app_version": "2.2.0",
   "default_text_models": [
     { "id": "gemini-2.5-flash-preview-09-2025", "displayName": "Gemini 2.5 Flash (Default)" }
   ],

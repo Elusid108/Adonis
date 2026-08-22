@@ -119,7 +119,7 @@ export function buildPhysicalGroundTruthBlock(profile) {
     const lines = [
         'CANONICAL SILHOUETTE (physique_macro is source of truth; macro_physique is derived — do not contradict)',
         `Name: ${ci?.first_name ?? '—'}`,
-        `Age: ${ci?.age_bracket ?? '—'} (lineage window: ${profile.identity_lineage?.chronological_age_range ?? '—'})`,
+        `Age: ${ci?.age_bracket ?? '—'} (lineage window: ${profile.identity_lineage?.chronological_age_range ?? '—'}; perceived: ${profile.identity_lineage?.perceived_age_modifier ?? '—'})`,
         `Height: ${pm?.height ?? '—'} → ${mp?.height_category ?? '—'}`,
         `Composition: ${pm?.body_composition ?? '—'}`,
         `Muscle definition: ${pm?.muscle_definition ?? '—'} → muscle mass ${mp?.muscle_mass ?? '—'}`,

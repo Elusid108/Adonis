@@ -1,5 +1,5 @@
 import { reconcileProfile } from './physique.js';
-import { ageBracketMatchesFilter } from './fantasy.js';
+import { ageBracketMatchesFilter, isYoutheningPerceivedAge } from './fantasy.js';
 
 export const SKIP_ARCHETYPE_TOP_LEVEL = new Set(['psychology_and_beliefs']);
 
@@ -34,6 +34,23 @@ function pickAge(arr, ageFilter) {
     return pick(filtered.length ? filtered : arr);
 }
 
+function pickPerceivedAge(arr, ageFilter) {
+    if (!ageFilter || ageFilter === 'any' || ageFilter === 'young') return pick(arr);
+    const filtered = arr.filter(v => !isYoutheningPerceivedAge(v));
+    return pick(filtered.length ? filtered : arr);
+}
+
+function shouldKeepLock(path, locked, ageFilter) {
+    if (locked === undefined || locked === null) return false;
+    if (path === 'core_identity.age_bracket' && ageFilter && ageFilter !== 'any' && !ageBracketMatchesFilter(locked, ageFilter)) {
+        return false;
+    }
+    if (path === 'identity_lineage.perceived_age_modifier' && ageFilter && ageFilter !== 'any' && ageFilter !== 'young' && isYoutheningPerceivedAge(locked)) {
+        return false;
+    }
+    return true;
+}
+
 function pickAvoiding(arr, current, pickFn) {
     if (!arr.length) return current;
     if (arr.length === 1) return arr[0];
@@ -60,14 +77,18 @@ export function rollCharacter(archetypes, { locks = [], previousProfile = null, 
             if (Array.isArray(obj[key])) {
                 if (lockSet.has(path) && previousProfile) {
                     const locked = getByPath(previousProfile, path);
-                    if (locked !== undefined && locked !== null) {
+                    if (shouldKeepLock(path, locked, ageFilter)) {
                         result[key] = locked;
                         continue;
                     }
                 }
-                result[key] = path === 'core_identity.age_bracket'
-                    ? pickAge(obj[key], ageFilter)
-                    : pick(obj[key]);
+                if (path === 'core_identity.age_bracket' || path === 'identity_lineage.chronological_age_range') {
+                    result[key] = pickAge(obj[key], ageFilter);
+                } else if (path === 'identity_lineage.perceived_age_modifier') {
+                    result[key] = pickPerceivedAge(obj[key], ageFilter);
+                } else {
+                    result[key] = pick(obj[key]);
+                }
             } else if (typeof obj[key] === 'object' && obj[key] !== null) {
                 result[key] = traverse(obj[key], [...pathParts, key], false);
             }
@@ -82,9 +103,11 @@ export function rerollPath(profile, archetypes, path, { ageFilter = 'any' } = {}
     const options = getByPath(archetypes, path);
     if (!Array.isArray(options) || options.length === 0) return profile;
     const current = getByPath(profile, path);
-    const picker = path === 'core_identity.age_bracket'
+    const picker = (path === 'core_identity.age_bracket' || path === 'identity_lineage.chronological_age_range')
         ? (arr) => pickAge(arr, ageFilter)
-        : pick;
+        : path === 'identity_lineage.perceived_age_modifier'
+            ? (arr) => pickPerceivedAge(arr, ageFilter)
+            : pick;
     const next = pickAvoiding(options, current, picker);
     const clone = JSON.parse(JSON.stringify(profile));
     setByPath(clone, path, next);

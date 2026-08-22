@@ -106,11 +106,76 @@ export function buildUserPersonaBlock(persona) {
     return lines.join('\n');
 }
 
+export function agePresetById(id) {
+    return AGE_PRESETS.find(p => p.id === id) || AGE_PRESETS[0];
+}
+
+export function isYoutheningPerceivedAge(label) {
+    return /younger|baby face/i.test(String(label || ''));
+}
+
+export function buildAgeLockInstruction(ageFilter, rolledBracket) {
+    const preset = agePresetById(ageFilter);
+    const rolled = rolledBracket || 'unspecified';
+    if (!preset || preset.id === 'any') {
+        return `AGE: Legal adult. Rolled bracket: ${rolled}. Face, hands, and skin must match that bracket. Never depict anyone under 18.`;
+    }
+    return [
+        `AGE LOCK (HARD CANON — beats user concept, “college kid” stereotypes, and baby-face defaults):`,
+        `- Settings lock: ${preset.label} (must read as ${preset.min}–${preset.max}).`,
+        `- Rolled bracket (source of truth for face, neck, hands, hair aging): ${rolled}.`,
+        `- Do not describe or depict him younger than ${preset.min} or older than ${preset.max}.`,
+        `- No teen coding, no freshman/campus-kid face unless the lock is Young (18–29).`,
+        `- Never depict anyone under 18.`
+    ].join('\n');
+}
+
+export function buildOpenerGenerationNote(openerId) {
+    switch (openerId) {
+        case 'dating_match':
+            return 'OPENER: Dating-app match. Visual: a first-profile photo — put-together, a little performative. Inner life: curious, not yet intimate.';
+        case 'wrong_number':
+            return 'OPENER: Wrong number. Visual: candid adult, not a catalog shot unless the rolled style says otherwise. Inner life: amused, wary, or game.';
+        case 'dads_friend':
+            return "OPENER: Dad's friend / older family friend. Visual: lived-in adult, not a campus kid. Inner life: he already knows their family; taboo charge is allowed. Do not write him as a stranger from a dating app.";
+        case 'professor':
+            return 'OPENER: Professor / mentor. Visual: academic or professional adult. Inner life: power imbalance, office-hours / after-class texts. Prefer interpreting profession toward teaching, coaching, or mentorship if the rolled job can stretch.';
+        case 'boss':
+            return 'OPENER: Boss / manager. Visual: workplace-adult competence. Inner life: after-hours professional cover with personal undertow. Prefer interpreting profession toward a senior/manager role if it can stretch.';
+        case 'neighbor':
+            return 'OPENER: Neighbor. Visual: residential casual, hallway/building energy. Inner life: they have seen each other; this is a text thread.';
+        default:
+            return 'OPENER: Strangers meeting over text. Visual can be candid or a first dating-app photo. Inner life: they do not know each other yet.';
+    }
+}
+
 export function visualizerHeatNote(heatId) {
     if (heatId === 'filthy') {
-        return 'HEAT IS FILTHY: revealing clothing, implied nudity, or locker-room/bedroom context is allowed if it fits the request. Stay STRICTLY HUMAN. Never use the word fur. Never depict anyone under 18.';
+        return 'HEAT IS FILTHY: revealing clothing, implied nudity, or locker-room/bedroom context is allowed if it fits. Stay STRICTLY HUMAN. Never use the word fur. Never depict anyone under 18.';
     }
-    return 'Translate explicit metrics into safe visual equivalents. Clothing should be opaque and normal unless the user explicitly asks otherwise.';
+    if (heatId === 'slow-burn') {
+        return 'HEAT IS SLOW BURN: clothed, tension in posture and eye contact — not a bedroom/locker-room default. Stay STRICTLY HUMAN. Never depict anyone under 18.';
+    }
+    return 'HEAT IS FLIRTY: attractive and a little charged, mostly normal clothing unless the request says otherwise. Stay STRICTLY HUMAN. Never depict anyone under 18.';
+}
+
+export function buildFantasyCanonBlock({ ageFilter, heat, opener, userPersona, rolledAge } = {}) {
+    const lines = [
+        'FANTASY SETTINGS (HARD CANON for this generation — portrait AND inner life):',
+        buildAgeLockInstruction(ageFilter, rolledAge),
+        buildOpenerGenerationNote(opener),
+        visualizerHeatNote(heat)
+    ];
+    const p = userPersona || {};
+    const bits = [];
+    if ((p.name || '').trim()) bits.push(`name ${(p.name || '').trim()}`);
+    if ((p.age || '').trim()) bits.push(`age ${(p.age || '').trim()}`);
+    if ((p.addressAs || '').trim()) bits.push(`he should call them "${(p.addressAs || '').trim()}"`);
+    if ((p.notes || '').trim()) bits.push(`what they want: ${(p.notes || '').trim()}`);
+    if (bits.length) {
+        lines.push(`THE PERSON HE WILL TEXT (do not draw them in the portrait; shape status, pursuit, and backstory around them): ${bits.join('; ')}`);
+    }
+    return lines.join('\n');
 }
 
 export function loadFantasy() {

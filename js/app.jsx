@@ -18,7 +18,7 @@ import {
 import { rollCharacter, rerollPath, getByPath } from './js/roll.js';
 import {
     AGE_PRESETS, HEAT_PRESETS, OPENER_PRESETS, DADDY_PRESET, loadFantasy, saveFantasy,
-    buildOpenerBlock, buildHeatBlock, buildUserPersonaBlock, visualizerHeatNote
+    buildOpenerBlock, buildHeatBlock, buildUserPersonaBlock, buildFantasyCanonBlock
 } from './js/fantasy.js';
 import {
     initStorage, getStorageAvailability, loadCurrentSession, saveCurrentSession,
@@ -133,16 +133,6 @@ const firstBit = (v, fallback = '—') => {
 
 const DEFAULT_VIS_WELCOME = { role: 'system', text: 'Welcome to the Adonis Engine Studio. Enter your API Key in settings, then click "Roll Character" to begin.', type: 'text' };
 
-// #region agent log
-function dbgLog(hypothesisId, location, message, data) {
-    fetch('http://127.0.0.1:7676/ingest/c03f85f6-4b25-4da9-8f82-1bb2a0aa9d75', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '764392' },
-        body: JSON.stringify({ sessionId: '764392', runId: 'pre-fix', hypothesisId, location, message, data: data || {}, timestamp: Date.now() })
-    }).catch(() => {});
-}
-// #endregion
-
 const loadLockedPaths = () => {
     try {
         const raw = JSON.parse(localStorage.getItem('adonis_locked_paths') || '[]');
@@ -224,10 +214,6 @@ const AdonisEngineApp = ({ appData }) => {
     const fileInputRef = useRef(null);
     const jsonImportRef = useRef(null);
     const skipSaveRef = useRef(true);
-    const toolbarRef = useRef(null);
-    const tabsRef = useRef(null);
-    const conceptRef = useRef(null);
-    const rollBtnRef = useRef(null);
 
     const generateRoleplayPrompt = (profile) => fillTemplate(rpPromptTemplate, {
         ...profile,
@@ -242,6 +228,14 @@ const AdonisEngineApp = ({ appData }) => {
         if (!visualPromptText) return base;
         return `${base}\n\n[VISUAL APPEARANCE - ABSOLUTE OVERRIDE]\nYour physical appearance is strictly defined by the following visual description. If any of your base profile traits conflict with this visual description, the visual description completely overrides them.\n\n${visualPromptText}`;
     };
+
+    const fantasyCanonFor = (profile) => buildFantasyCanonBlock({
+        ageFilter,
+        heat,
+        opener,
+        userPersona,
+        rolledAge: profile?.core_identity?.age_bracket
+    });
 
     const buildSnapshot = () => ({
         app_version: APP_VERSION,
@@ -371,34 +365,6 @@ const AdonisEngineApp = ({ appData }) => {
 
     useEffect(() => { visChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [visChatHistory]);
     useEffect(() => { rpChatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [roleplayUiChat]);
-    // #region agent log
-    useEffect(() => {
-        const measure = () => {
-            const box = (el) => {
-                if (!el) return null;
-                const r = el.getBoundingClientRect();
-                return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) };
-            };
-            const tabs = box(tabsRef.current);
-            const concept = box(conceptRef.current);
-            const overlap = tabs && concept
-                ? !(concept.x + concept.w <= tabs.x || concept.x >= tabs.x + tabs.w || concept.y + concept.h <= tabs.y || concept.y >= tabs.y + tabs.h)
-                : null;
-            dbgLog('D', 'app.jsx:toolbar', 'toolbar geometry', {
-                layout,
-                pane: box(toolbarRef.current),
-                tabs,
-                concept,
-                roll: box(rollBtnRef.current),
-                overlap,
-                conceptBelowTabs: tabs && concept ? concept.y >= tabs.y + tabs.h - 2 : null
-            });
-        };
-        measure();
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-    }, [layout, personaProfile, isGlobalRolling]);
-    // #endregion
 
     const updateApiKey = (val) => {
         setApiKey(val);
@@ -444,20 +410,7 @@ const AdonisEngineApp = ({ appData }) => {
 
             setAvailableTextModels(textOpts);
             setAvailableImageModels(imageOpts);
-            // #region agent log
-            const selectedMeta = (data.models || []).find(m => (m.name || '').replace('models/', '') === selectedTextModel);
-            dbgLog('A', 'app.jsx:fetchModels', 'text model list vs current selection', {
-                selectedTextModel,
-                selectedInList: !!textOpts.find(m => m.id === selectedTextModel),
-                textIds: textOpts.slice(0, 20).map(m => m.id),
-                selectedMethods: selectedMeta?.supportedGenerationMethods || null,
-                flashCandidates: textOpts.filter(m => m.id.includes('flash')).slice(0, 8).map(m => m.id)
-            });
-            // #endregion
             const pickedText = pickGenerateContentTextModel(textOpts, selectedTextModel);
-            // #region agent log
-            fetch('http://127.0.0.1:7676/ingest/c03f85f6-4b25-4da9-8f82-1bb2a0aa9d75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'764392'},body:JSON.stringify({sessionId:'764392',runId:'post-fix',hypothesisId:'A',location:'app.jsx:fetchModels',message:'picked generateContent text model',data:{selectedTextModel,pickedText,willSwitch:pickedText!==selectedTextModel},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             if (pickedText && pickedText !== selectedTextModel) setSelectedTextModel(pickedText);
             if (imageOpts.length > 0 && !imageOpts.find(m => m.id === selectedImageModel)) {
                 const d = imageOpts.find(m => m.id.includes('flash-image') || m.id.includes('imagen'));
@@ -572,12 +525,7 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
             if (id && !queue.includes(id)) queue.push(id);
         }
         let lastErr = null;
-        const tried = [];
         for (const modelId of queue) {
-            tried.push(modelId);
-            // #region agent log
-            fetch('http://127.0.0.1:7676/ingest/c03f85f6-4b25-4da9-8f82-1bb2a0aa9d75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'764392'},body:JSON.stringify({sessionId:'764392',runId:'post-fix',hypothesisId:'B',location:'app.jsx:callTextAPI',message:'generateContent attempt',data:{modelId,queue},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             const response = await fetch(generateContentUrl(modelId), {
                 method: 'POST',
                 headers: geminiHeaders(apiKey),
@@ -585,15 +533,6 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                // #region agent log
-                dbgLog('B', 'app.jsx:callTextAPI', 'generateContent failed', {
-                    selectedTextModel,
-                    status: response.status,
-                    errMsg: data.error?.message || null,
-                    errStatus: data.error?.status || null,
-                    mentionsInteractions: String(data.error?.message || '').toLowerCase().includes('interaction')
-                });
-                // #endregion
                 if (response.status === 401 || response.status === 403) throw new Error('Unauthorized: Invalid API Key. Please check your settings.');
                 const msg = data.error?.message || `Text Engine Error (${modelId}): ${response.status}`;
                 lastErr = new Error(msg);
@@ -601,9 +540,6 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
                 throw lastErr;
             }
             if (modelId !== selectedTextModel) setSelectedTextModel(modelId);
-            // #region agent log
-            fetch('http://127.0.0.1:7676/ingest/c03f85f6-4b25-4da9-8f82-1bb2a0aa9d75',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'764392'},body:JSON.stringify({sessionId:'764392',runId:'post-fix',hypothesisId:'B',location:'app.jsx:callTextAPI',message:'generateContent ok',data:{usedModel:modelId,tried},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             return extractTextFromGenerateContent(data);
         }
         throw lastErr || new Error('Text Engine Error: no usable generateContent model.');
@@ -617,15 +553,17 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
         const wounds = profile.hidden_vulnerabilities || {};
         const lines = [
             'You are an expert character writer for immersive text-message roleplay.',
-            'Infer deep psychology, backstory beats, and behavioral directives that fit the canon physique and rolled lifestyle. Do not contradict the physical facts or the rolled wounds below.',
+            'Infer deep psychology, backstory beats, and behavioral directives that fit the canon physique, rolled lifestyle, and FANTASY SETTINGS. Do not contradict the physical facts, age lock, opener, or the rolled wounds below.',
+            '',
+            fantasyCanonFor(profile),
             '',
             `Name: ${ci?.first_name ?? 'Unknown'}`,
             `Age bracket: ${ci?.age_bracket ?? '—'}`,
             `Profession (rolled): ${bl?.current_profession ?? '—'}`,
             `Socioeconomic background: ${bl?.socioeconomic_background ?? '—'}`,
             conceptFilter
-                ? `User concept / filter (weave into voice and history): "${conceptFilter}"`
-                : 'No user concept — invent a coherent inner life from physique and context alone.',
+                ? `User concept / filter (weave into voice and history; AGE LOCK and opener beat the concept if they conflict): "${conceptFilter}"`
+                : 'No user concept — invent a coherent inner life from physique, opener, and heat.',
             '',
             '--- ROLLED WOUNDS (canon seeds — do not contradict) ---',
             `Attachment style: ${psych.attachment_style ?? '—'}`,
@@ -831,12 +769,11 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
                 setIsVisTextLoading(false);
             } else {
                 const canonPrefix = personaProfile
-                    ? `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(personaProfile)}\n\n`
-                    : '';
-                const heatNote = visualizerHeatNote(heat);
+                    ? `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(personaProfile)}\n\n${fantasyCanonFor(personaProfile)}\n\n`
+                    : `${buildFantasyCanonBlock({ ageFilter, heat, opener, userPersona })}\n\n`;
                 const promptContext = currentPrompt
-                    ? `${canonPrefix}CURRENT PROMPT:\n"${currentPrompt}"\n\nUSER REQUEST: Change the character based on this instruction: "${modificationText}".\n${heatNote}\n\nRemember to output ONLY the updated full prompt in the structured format.`
-                    : `${canonPrefix}USER REQUEST: Create a new male character description.\n\nINSTRUCTION: ${modificationText}.\n${heatNote}\n\nEnsure you use the full structured format with all sections.`;
+                    ? `${canonPrefix}CURRENT PROMPT:\n"${currentPrompt}"\n\nUSER REQUEST: Change the character based on this instruction: "${modificationText}".\nKeep AGE LOCK and opener canon unless the user explicitly names a new age or relationship.\n\nRemember to output ONLY the updated full prompt in the structured format.`
+                    : `${canonPrefix}USER REQUEST: Create a new male character description.\n\nINSTRUCTION: ${modificationText}.\nKeep AGE LOCK and opener canon unless the user explicitly names a new age or relationship.\n\nEnsure you use the full structured format with all sections.`;
                 const payload = {
                     contents: [{ parts: [{ text: promptContext }] }],
                     systemInstruction: { parts: [{ text: DEFAULT_SYSTEM_PROMPT }] }
@@ -903,14 +840,6 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
     };
 
     const generateNewBase = async () => {
-        // #region agent log
-        dbgLog('C', 'app.jsx:generateNewBase', 'roll start', {
-            selectedTextModel,
-            selectedImageModel,
-            layout,
-            conceptLen: (characterConcept || '').length
-        });
-        // #endregion
         setError(null);
         if (!apiKey) {
             setError('API Key Required. Please enter it in Settings.');
@@ -941,17 +870,17 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
         setRoleplayUiChat([{ id: Date.now(), role: 'system', text: 'Synthesizing psychological profile and portrait...' }]);
 
         const profileString = formatProfileToString(profile);
-        const canonPrefix = `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(profile)}\n\n`;
-        const heatNote = visualizerHeatNote(heat);
+        const fantasyBlock = fantasyCanonFor(profile);
+        const canonPrefix = `CANONICAL PHYSIQUE (must match; resolve conflicts in favor of these facts):\n${buildPhysicalGroundTruthBlock(profile)}\n\n${fantasyBlock}\n\n`;
         let seedInstruction = '';
         let contextMsg = '';
 
         if (conceptTrimmed) {
             contextMsg = `Rolled with guidance: "${conceptTrimmed}"`;
-            seedInstruction = `${canonPrefix}Create a unique human male character description.\n**PRIMARY DIRECTIVE:** The user specifically requested: "${conceptTrimmed}".\nYou MUST respect this request above all else.\n**SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:\n${profileString}\nIf the user request conflicts with a rolled trait, IGNORE the rolled trait and OBEY the user.\nEnsure he is STRICTLY HUMAN.\n${heatNote}\nUse the full structured output format.`;
+            seedInstruction = `${canonPrefix}Create a unique human male character description.\n**PRIMARY DIRECTIVE (vibe / job / style):** The user specifically requested: "${conceptTrimmed}".\n**AGE LOCK AND FANTASY SETTINGS BEAT THE CONCEPT:** if the concept implies a different age (college freshman, twink 22, teen coding) or a meet-cute that contradicts the opener, keep the fantasy canon and reinterpret the concept as an adult in the locked age band.\n**SECONDARY TRAITS:** Use the following randomly rolled attributes to fill in any gaps NOT specified by the user:\n${profileString}\nIf the user request conflicts with a rolled trait other than age/opener/heat, IGNORE the rolled trait and OBEY the user.\nEnsure he is STRICTLY HUMAN.\nUse the full structured output format.`;
         } else {
             contextMsg = `Base identity rolled: ${profile.core_identity.first_name}`;
-            seedInstruction = `${canonPrefix}Create a unique human male character description based strictly on these rolled attributes:\n${profileString}\nCombine these elements into a cohesive, physically desirable character.\nEnsure he is STRICTLY HUMAN.\n${heatNote}\nUse the full structured output format.`;
+            seedInstruction = `${canonPrefix}Create a unique human male character description based strictly on these rolled attributes and the FANTASY SETTINGS above:\n${profileString}\nCombine these elements into a cohesive, physically desirable character who reads as the locked age.\nEnsure he is STRICTLY HUMAN.\nUse the full structured output format.`;
         }
 
         const visualPayload = {
@@ -1310,6 +1239,7 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
 
                     {settingsTab === 'fantasy' && (
                         <div className="space-y-4">
+                            <p className="text-[11px] text-slate-400 leading-relaxed">Age lock, opener, heat, and who he’s texting steer the <span className="text-slate-200 font-semibold">next Roll</span> (dossier age, portrait, psychology) as well as Chat.</p>
                             <button type="button" onClick={applyDaddyPreset} className="w-full bg-amber-600/20 border border-amber-500/40 hover:bg-amber-600/30 text-amber-200 font-bold py-2 rounded-lg text-xs">Daddy preset (36–59, dad’s friend, filthy)</button>
                             <div>
                                 <label className={labelClass}>Age lock</label>
@@ -1587,9 +1517,9 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
 
                 <div className={`flex flex-col bg-slate-900 z-20 ${layout === 'chat-left' ? 'order-1' : 'order-2'} ${layout === 'chat-bottom' ? 'flex-none h-[40vh] min-h-[200px] border-t border-slate-700 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]' : `flex-none w-[40%] min-w-[280px] max-w-[500px] h-full ${layout === 'chat-left' ? 'border-r border-slate-700' : 'border-l border-slate-700'}`}`}>
 
-                    <div ref={toolbarRef} className={`flex-none bg-slate-900 border-b border-slate-800 px-3 py-2.5 flex flex-col gap-2 z-20 shadow-sm ${layout === 'chat-bottom' ? 'border-t' : ''}`}>
+                    <div className={`flex-none bg-slate-900 border-b border-slate-800 px-3 py-2.5 flex flex-col gap-2 z-20 shadow-sm ${layout === 'chat-bottom' ? 'border-t' : ''}`}>
                         <div className="flex justify-between items-center gap-2">
-                            <div ref={tabsRef} className="flex bg-slate-800/80 rounded-lg p-1 border border-slate-700/50 shrink-0 min-w-0">
+                            <div className="flex bg-slate-800/80 rounded-lg p-1 border border-slate-700/50 shrink-0 min-w-0">
                                 <button onClick={() => setActiveMainTab('visualizer')} className={`px-3 py-2 text-[12px] font-bold rounded-md flex items-center gap-1.5 transition-all ${activeMainTab === 'visualizer' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-700/50'}`}>
                                     <Palette className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Visualizer</span>
                                 </button>
@@ -1597,14 +1527,13 @@ Physically, you feature a ${lc(p.facial_features?.jawline_and_chin) || '—'}, $
                                     <MessageCircle className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Chat with {personaProfile?.core_identity?.first_name || 'Target'}</span>
                                 </button>
                             </div>
-                            <button ref={rollBtnRef} type="button" onClick={generateNewBase} disabled={isGlobalRolling || isVisImageLoading || isVisTextLoading || isChatTyping} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 sm:px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95 shrink-0">
+                            <button type="button" onClick={generateNewBase} disabled={isGlobalRolling || isVisImageLoading || isVisTextLoading || isChatTyping} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 sm:px-4 py-2 rounded-full font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all transform hover:scale-105 active:scale-95 shrink-0">
                                 {isGlobalRolling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Dices className="w-4 h-4 animate-bounce" />}
                                 <span className="hidden sm:inline">Roll Character</span>
                                 <span className="sm:hidden">Roll</span>
                             </button>
                         </div>
                         <input
-                            ref={conceptRef}
                             type="text"
                             value={characterConcept}
                             onChange={(e) => setCharacterConcept(e.target.value)}

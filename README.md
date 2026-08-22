@@ -15,7 +15,17 @@ Adonis Engine operates as a comprehensive suite for character creation and inter
 * **Infrastructure/Hardware:** Static HTML/JS hosting, Client-side execution
 
 ## Setup & Deployment
-1. Clone the repository and serve the root directory using any standard static web server (e.g., Node's `http-server` or Python's `http.server`).
-2. Open `index.html` in a modern web browser.
-3. Navigate to the Settings panel within the application UI and input a valid Google Gemini API Key.
-4. Click "Roll Character" to initialize the procedural generation and AI synthesis pipeline.
+
+### Windows (local)
+1. Clone the repository.
+2. Double-click `launch.bat` in the repo root. It serves the folder on [http://localhost:8080/](http://localhost:8080/) and opens your browser. (Requires Python 3 or Node.js. Do not open `index.html` as a file — the app must be served over HTTP.)
+3. Open Settings and paste a Google Gemini API key.
+4. Click **Roll Character**.
+
+### Any OS
+Serve the repo root with any static web server (`py -m http.server 8080`, `python -m http.server 8080`, or `npx serve`), then open the printed localhost URL.
+
+### GitHub Pages
+Enable Pages on branch `main` / root (`/`). Relative paths work as-is. Do not commit API keys.
+
+Sessions auto-save in the browser (IndexedDB). Use Settings → Saves for named slots and JSON export/import.
